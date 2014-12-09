@@ -70,8 +70,8 @@ public class ServerAPI {
         return null;
     }
 
-    void getTranslations( String deviceId, List<String> keys, List<String> translationLangs,
-                          ITranslationsReceiver receiver ) {
+    public void getTranslations( String deviceId, List<String> keys, List<String> translationLangs,
+                                 ITranslationsReceiver receiver ) {
         Uri.Builder builder = Uri.parse("http://jitt-server.appspot.com/api/translations").buildUpon();
         builder.appendQueryParameter("device_id",deviceId);
         for ( String key : keys ) {

@@ -1,8 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="me.everything.jittlib">
 
-    <application android:allowBackup="true"></application>
-
     <uses-permission android:name="android.permission.INTERNET" />
+    <application android:allowBackup="true">
+        <activity
+            android:name="me.everything.jittlib.JittMainActivity" >
+        </activity>
+    </application>
 
 </manifest>

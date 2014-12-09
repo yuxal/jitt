@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">JITT</string>
+    <string name="entries_not_valid_title">Not Translatable</string>
+
+
+    <string name="action_settings">Settings</string>
 </resources>
