@@ -2,9 +2,11 @@ package me.everything.jittlib;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.os.AsyncTask;
 import android.provider.Settings;
+import android.util.Pair;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -13,6 +15,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -23,6 +26,10 @@ import java.util.Set;
  * Created by eyalbiran on 12/9/14.
  */
 public class Jitt {
+
+    private static final String SELECTED_LOCALES = "jitt_selected_locals";
+    private SharedPreferences mSP;
+    private Locale mCurrentLocle;
 
     public static class Entry {
         public String key;
@@ -38,6 +45,7 @@ public class Jitt {
     private String mDeviceId;
 
     private Map<String, String> mLocaleList;
+    private List<String> mSelectedLocale;
 
     private Map<String, Entry> mResourcesEntries = new HashMap<>();
     private List<String> mViewResourcesStrings = new ArrayList<>();
@@ -58,6 +66,8 @@ public class Jitt {
 
     public void initialize(Context context, Class<?> r) {
         Resources resources = context.getResources();
+        mSP = context.getSharedPreferences("JITT", context.MODE_PRIVATE);
+        mCurrentLocle = resources.getConfiguration().locale;
         mServerAPI = new ServerAPI(context);
         mResourcesEntries.clear();
         mDeviceId = Settings.Secure.getString(context.getContentResolver(),
@@ -172,24 +182,63 @@ public class Jitt {
         return mSuggestions.get(key);
     }
 
-    public List<String> getAllLocale() {
-        Set<String> keys = mLocaleList.keySet();
+    public List<Map.Entry<String, String>> getAllLocale() {
+        Set<Map.Entry<String, String>> keys = mLocaleList.entrySet();
 
         // TODO ORDER SMART?
-        List<String> allLocale = new ArrayList<>(keys.size());
+        List<Map.Entry<String, String>> allLocale = new ArrayList<>(keys.size());
         allLocale.addAll(keys);
-        Collections.sort(allLocale);
+        Collections.sort(allLocale, new Comparator<Map.Entry<String, String>>() {
+            @Override
+            public int compare(Map.Entry<String, String> lhs, Map.Entry<String, String> rhs) {
+                return lhs.getValue().compareTo(rhs.getValue());
+            }
+        });
 
         return allLocale;
     }
 
     public List<String> getSelectedLocale() {
-        // TODO Get selection from hared preferences
-        List<String> selectedLocale = new ArrayList<>();
+        if (mSelectedLocale == null) {
+            String localesList = mSP.getString(SELECTED_LOCALES, "");
+            String[] localesArray = localesList.split(",");
+            mSelectedLocale = new ArrayList<>(localesArray.length);
+            for (int i = 0; i < localesArray.length; i ++) {
+                String locale = localesArray[i];
+                if (!locale.isEmpty()) {
+                    mSelectedLocale.add(localesArray[i]);
+                }
+            }
+            if (mSelectedLocale.isEmpty()) {
+                // Add at least selected locale and ENG?
+                addSelectedLocale("en");
+                addSelectedLocale(mCurrentLocle.getDisplayName());
+            }
+        }
 
-        selectedLocale.add("en");
-        selectedLocale.add("he");
-        return selectedLocale;
+        return mSelectedLocale;
+    }
+
+    public void addSelectedLocale(String locale) {
+        if (!mSelectedLocale.contains(locale)) {
+            mSelectedLocale.add(locale);
+            saveSelectedLocales();
+        }
+    }
+
+    public void removeSelectedLocale(String locale) {
+        if (mSelectedLocale.contains(locale)) {
+            mSelectedLocale.remove(locale);
+            saveSelectedLocales();
+        }
+    }
+
+    private void saveSelectedLocales() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < mSelectedLocale.size(); i++) {
+            sb.append(mSelectedLocale.get(i)).append(",");
+        }
+        mSP.edit().putString(SELECTED_LOCALES, sb.toString()).apply();
     }
 
     public String getLanguageName(String locale) {
