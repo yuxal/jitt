@@ -258,8 +258,10 @@ public class Jitt {
             }
             if (mSelectedLocale.isEmpty()) {
                 // Add at least selected locale and ENG?
+                String currentLocale = mCurrentLocle.getLanguage();
+
                 addSelectedLocale("en");
-                addSelectedLocale(mCurrentLocle.getDisplayName());
+                addSelectedLocale(currentLocale);
             }
         }
 
@@ -267,7 +269,7 @@ public class Jitt {
     }
 
     public void addSelectedLocale(String locale) {
-        if (!mSelectedLocale.contains(locale)) {
+        if (locale != null && !locale.isEmpty() && !mSelectedLocale.contains(locale)) {
             mSelectedLocale.add(locale);
             saveSelectedLocales();
         }
