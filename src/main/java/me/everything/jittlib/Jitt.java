@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.os.AsyncTask;
 import android.provider.Settings;
+import android.util.Log;
 import android.util.Pair;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -70,7 +71,7 @@ public class Jitt {
         return mViewNoneResourcesStrings;
     }
 
-    public void initialize(Activity context, Class<?> r) {
+    public void initialize(Activity context, Class<?>... rs) {
         Resources resources = context.getResources();
         mSP = context.getSharedPreferences("JITT", context.MODE_PRIVATE);
         mCurrentLocle = resources.getConfiguration().locale;
@@ -93,28 +94,32 @@ public class Jitt {
             }
         }
 
-        // Create the local mapping from Key, Strings, Locale
-        Class stringRClass = null;
-        Class[] classes = r.getDeclaredClasses();
-        for (Class clazz: classes) {
-            if (clazz.getName().endsWith("string")) {
-                stringRClass = clazz;
-                break;
+        for ( Class<?> r : rs ) {
+            // Create the local mapping from Key, Strings, Locale
+            Class stringRClass = null;
+            Class[] classes = r.getDeclaredClasses();
+            for (Class clazz: classes) {
+                if (clazz.getName().endsWith("string")) {
+                    stringRClass = clazz;
+                    break;
+                }
             }
-        }
 
-        if (stringRClass != null) {
-            Field[] classFields = stringRClass.getDeclaredFields();
-            // Get all (Keys Names, Identifiers)
-            for (Field field : classFields) {
-                try {
-                    Entry entry = new Entry();
-                    entry.key = field.getName();
-                    entry.resId = (int)field.get(stringRClass);
-                    entry.text = resources.getString(entry.resId);
-                    mResourcesEntries.put(entry.text, entry);
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
+            if (stringRClass != null) {
+                Field[] classFields = stringRClass.getDeclaredFields();
+                // Get all (Keys Names, Identifiers)
+                for (Field field : classFields) {
+                    try {
+                        Entry entry = new Entry();
+                        entry.key = field.getName();
+                        entry.resId = (int)field.get(stringRClass);
+                        entry.text = resources.getString(entry.resId);
+                        mResourcesEntries.put(entry.text, entry);
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    } catch (android.content.res.Resources.NotFoundException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }
@@ -173,12 +178,14 @@ public class Jitt {
             // We have one!
             TextView textView = (TextView)view;
             String string = textView.getText().toString();
+            if ( string.length() > 0 ) {
 
-            if (mResourcesEntries.containsKey(string)) {
-                // This string has a corresponding entry in string XML
-                mViewResourcesStrings.add(string);
-            } else {
-                mViewNoneResourcesStrings.add(string);
+                if (mResourcesEntries.containsKey(string)) {
+                    // This string has a corresponding entry in string XML
+                    mViewResourcesStrings.add(string);
+                } else {
+                    mViewNoneResourcesStrings.add(string);
+                }
             }
 
         }

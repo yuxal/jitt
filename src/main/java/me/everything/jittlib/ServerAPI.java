@@ -68,7 +68,7 @@ public class ServerAPI {
             return data.trim();
 
         } catch (IOException e) {
-            Log.d(TAG, "Error: " + e);
+            Log.e(TAG, "Error: ", e);
         }
         return null;
     }

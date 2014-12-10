@@ -5,9 +5,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application android:allowBackup="true" >
-        <activity android:name=".JittMainActivity"/>
-        <activity android:name=".JittTranslateActivity"/>
-        <activity android:name=".JittSelectLanguagesActivity"/>
+        <activity android:name=".JittMainActivity" android:theme="@style/Theme.AppCompat.Light"/>
+        <activity android:name=".JittTranslateActivity"  android:theme="@style/Theme.AppCompat.Light"/>
+        <activity android:name=".JittSelectLanguagesActivity"  android:theme="@style/Theme.AppCompat.Light"/>
     </application>
 
 </manifest>
