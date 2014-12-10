@@ -11,10 +11,13 @@ import android.widget.TextView;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by eyalbiran on 12/9/14.
@@ -33,6 +36,8 @@ public class Jitt {
     private ServerAPI.TranslationResult mSuggestions;
 
     private String mDeviceId;
+
+    private Map<String, String> mLocaleList;
 
     private Map<String, Entry> mResourcesEntries = new HashMap<>();
     private List<String> mViewResourcesStrings = new ArrayList<>();
@@ -58,6 +63,19 @@ public class Jitt {
         mDeviceId = Settings.Secure.getString(context.getContentResolver(),
                 Settings.Secure.ANDROID_ID);
 
+        mLocaleList = new HashMap<>();
+        Locale[] locales = Locale.getAvailableLocales();
+        ArrayList<String> localeCountries = new ArrayList<String>();
+        for (Locale l : locales) {
+            String lang = l.getLanguage();
+            if (lang.equals("iw")) {
+                lang = "he";
+            }
+            if (!mLocaleList.containsKey(lang)) {
+                mLocaleList.put(lang, l.getDisplayLanguage());
+                localeCountries.add(l.getLanguage());
+            }
+        }
 
         // Create the local mapping from Key, Strings, Locale
         Class stringRClass = null;
@@ -134,9 +152,7 @@ public class Jitt {
             extractStringsFromView(root);
 
             // Get data from server
-            List<String> translationLangs = new ArrayList<>();
-            translationLangs.add("en");
-            translationLangs.add("he");
+            List<String> translationLangs = getSelectedLocale();
             List<String> keys = getKeysForStrings(mViewResourcesStrings);
             mSuggestions = mServerAPI.getTranslations(mDeviceId, keys, translationLangs);
             return root;
@@ -156,13 +172,28 @@ public class Jitt {
         return mSuggestions.get(key);
     }
 
-    public String[] getAllLocale() {
-        Locale[] locales = Locale.getAvailableLocales();
-        ArrayList<String> localeCountries = new ArrayList<String>();
-        for(Locale l:locales) {
-            localeCountries.add(l.getDisplayLanguage().toString());
-        }
-        return (String[]) localeCountries.toArray(new String[localeCountries.size()]);
+    public List<String> getAllLocale() {
+        Set<String> keys = mLocaleList.keySet();
+
+        // TODO ORDER SMART?
+        List<String> allLocale = new ArrayList<>(keys.size());
+        allLocale.addAll(keys);
+        Collections.sort(allLocale);
+
+        return allLocale;
+    }
+
+    public List<String> getSelectedLocale() {
+        // TODO Get selection from hared preferences
+        List<String> selectedLocale = new ArrayList<>();
+
+        selectedLocale.add("en");
+        selectedLocale.add("he");
+        return selectedLocale;
+    }
+
+    public String getLanguageName(String locale) {
+        return mLocaleList.get(locale);
     }
 
 }

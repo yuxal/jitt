@@ -210,7 +210,7 @@ public class JittTranslateActivity extends ActionBarActivity {
             int langIndex = mLangList.indexOf(lang);
             ColorsList color = mLangColorList.get(langIndex);
 
-            holder.title.setText(lang);
+            holder.title.setText(Jitt.getInstance().getLanguageName(lang));
             convertView.setBackgroundColor(color.dark);
 
             return convertView;
