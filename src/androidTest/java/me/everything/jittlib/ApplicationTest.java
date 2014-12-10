@@ -22,7 +22,7 @@ public class ApplicationTest extends ApplicationTestCase<Application> {
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        mServerAPI = new ServerAPI();
+        mServerAPI = new ServerAPI(getContext());
     }
 
     @Override
@@ -41,40 +41,14 @@ public class ApplicationTest extends ApplicationTestCase<Application> {
         locales.add("lu_LU");
         locales.add("es_CL");
         locales.add("he_IL");
-        final CountDownLatch latch = new CountDownLatch(1);
-        mServerAPI.getTranslations("12345", keys, locales, new ServerAPI.ITranslationsReceiver() {
-            @Override
-            public void onGotTranslations(ServerAPI.TranslationResult suggestions) {
-                Log.e("TTT", "GOT "+suggestions);
-                latch.countDown();
-            }
-        });
-        Log.e("TTT", "WAITING");
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        Log.e("TTT", "DONE");
+        ServerAPI.TranslationResult suggestions = mServerAPI.getTranslations("12345", keys, locales );
+        Log.e("TTT", "GOT "+suggestions);
     }
 
     public void test_ServerAPI_doAction() {
         final CountDownLatch latch = new CountDownLatch(1);
-        mServerAPI.doAction("12345", "s_aaa", "lu_LU", "Ava Magila", "up",
-                            new ServerAPI.IActionDoneReceiver() {
-            @Override
-            public void onDone(boolean success) {
-                Log.e("TTT", "GOT success="+success);
-                latch.countDown();
-            }
-        });
-        Log.e("TTT", "WAITING");
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        Log.e("TTT", "DONE");
+        boolean result = mServerAPI.doAction("12345", "s_aaa", "lu_LU", "Ava Magila", "up");
+        Log.e("TTT", "GOT "+result);
     }
 
 }

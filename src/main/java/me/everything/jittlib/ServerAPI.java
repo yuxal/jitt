@@ -1,5 +1,6 @@
 package me.everything.jittlib;
 
+import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
 
@@ -21,6 +22,7 @@ import java.util.Map;
 public class ServerAPI {
 
     private static final String TAG ="JITT.serverapi";
+    private final String mAppId;
     private Gson mGson;
 
     public static class Suggestion {
@@ -36,8 +38,9 @@ public class ServerAPI {
     public static class TranslationResult extends HashMap<String,HashMap<String,ArrayList<Suggestion>>> {
     }
 
-    public ServerAPI() {
+    public ServerAPI(Context context) {
         mGson = new Gson();
+        mAppId = context.getApplicationContext().getPackageName();
     }
 
     private String readFromURL(String _url, boolean post) {
@@ -72,6 +75,7 @@ public class ServerAPI {
 
     public TranslationResult getTranslations( String deviceId, List<String> keys, List<String> translationLangs ) {
         Uri.Builder builder = Uri.parse("http://jitt-server.appspot.com/api/translations").buildUpon();
+        builder.appendQueryParameter("app_id",mAppId);
         builder.appendQueryParameter("device_id",deviceId);
         for ( String key : keys ) {
             builder.appendQueryParameter("key", key);
@@ -88,6 +92,7 @@ public class ServerAPI {
 
     public boolean doAction( String deviceId, String key, String lang, String suggestion, String action ) {
         Uri.Builder builder = Uri.parse("http://jitt-server.appspot.com/api/action").buildUpon();
+        builder.appendQueryParameter("app_id",mAppId);
         builder.appendQueryParameter("device_id",deviceId);
         builder.appendQueryParameter("key", key);
         builder.appendQueryParameter("locale", lang);

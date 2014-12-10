@@ -53,7 +53,7 @@ public class Jitt {
 
     public void initialize(Context context, Class<?> r) {
         Resources resources = context.getResources();
-        mServerAPI = new ServerAPI();
+        mServerAPI = new ServerAPI(context);
         mResourcesEntries.clear();
         mDeviceId = Settings.Secure.getString(context.getContentResolver(),
                 Settings.Secure.ANDROID_ID);
