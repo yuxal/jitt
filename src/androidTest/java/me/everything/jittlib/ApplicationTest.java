@@ -31,14 +31,14 @@ public class ApplicationTest extends ApplicationTestCase<Application> {
         mServerAPI = null;
     }
 
-    public void testServerAPI() {
+    public void test_ServerAPI_getTranslations() {
         List<String> keys = new ArrayList<String>();
         keys.add("s_aaa");
         keys.add("s_bbb");
         keys.add("hello_world");
         List<String> locales = new ArrayList<String>();
         locales.add("kl_KL");
-        locales.add("en_US");
+        locales.add("lu_LU");
         locales.add("es_CL");
         locales.add("he_IL");
         final CountDownLatch latch = new CountDownLatch(1);
@@ -46,6 +46,25 @@ public class ApplicationTest extends ApplicationTestCase<Application> {
             @Override
             public void onGotTranslations(ServerAPI.TranslationResult suggestions) {
                 Log.e("TTT", "GOT "+suggestions);
+                latch.countDown();
+            }
+        });
+        Log.e("TTT", "WAITING");
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        Log.e("TTT", "DONE");
+    }
+
+    public void test_ServerAPI_doAction() {
+        final CountDownLatch latch = new CountDownLatch(1);
+        mServerAPI.doAction("12345", "s_aaa", "lu_LU", "Ava Magila", "up",
+                            new ServerAPI.IActionDoneReceiver() {
+            @Override
+            public void onDone(boolean success) {
+                Log.e("TTT", "GOT success="+success);
                 latch.countDown();
             }
         });
