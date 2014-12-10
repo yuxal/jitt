@@ -1,5 +1,6 @@
 package me.everything.jittlib;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -8,6 +9,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -18,14 +20,30 @@ import java.util.List;
 public class JittMainActivity extends ActionBarActivity {
 
     private ListView mStringsList;
+    private StringsListAdapter mStringListAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_jitt_main);
+        getSupportActionBar().setTitle(R.string.title_activity_jitt_main);
+        getSupportActionBar().setHomeButtonEnabled(true);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
+        mStringListAdapter = new StringsListAdapter();
         mStringsList = (ListView)findViewById(R.id.list);
-        mStringsList.setAdapter(new StringsListAdapter());
+        mStringsList.setAdapter(mStringListAdapter);
+        mStringsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Intent intent = new Intent(JittMainActivity.this, JittTranslateActivity.class);
+
+                intent.putExtra(JittTranslateActivity.EXTRA_STRING_VALUE, (String)mStringListAdapter.getItem(position));
+
+                startActivity(intent);
+            }
+        });
+
     }
 
     @Override
@@ -44,6 +62,9 @@ public class JittMainActivity extends ActionBarActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            return true;
+        } else if (id == R.id.home || id == R.id.homeAsUp || id == android.R.id.home) {
+            finish();
             return true;
         }
 

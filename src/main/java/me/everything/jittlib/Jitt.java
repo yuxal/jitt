@@ -3,6 +3,8 @@ package me.everything.jittlib;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
+import android.os.AsyncTask;
+import android.provider.Settings;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -27,9 +29,15 @@ public class Jitt {
     }
 
     private static Jitt mInstance = new Jitt();
-    private static Map<String, Entry> mResourcesEntries = new HashMap<>();
-    private static List<String> mViewResourcesStrings = new ArrayList<>();
-    private static List<String> mViewNoneResourcesStrings = new ArrayList<>();
+    private ServerAPI mServerAPI;
+    private ServerAPI.TranslationResult mSuggestions;
+
+    private String mDeviceId;
+
+    private Map<String, Entry> mResourcesEntries = new HashMap<>();
+    private List<String> mViewResourcesStrings = new ArrayList<>();
+    private List<String> mViewResourcesKeys = new ArrayList<>();
+    private List<String> mViewNoneResourcesStrings = new ArrayList<>();
 
     public static Jitt getInstance() {
         return mInstance;
@@ -45,7 +53,11 @@ public class Jitt {
 
     public void initialize(Context context, Class<?> r) {
         Resources resources = context.getResources();
+        mServerAPI = new ServerAPI();
         mResourcesEntries.clear();
+        mDeviceId = Settings.Secure.getString(context.getContentResolver(),
+                Settings.Secure.ANDROID_ID);
+
 
         // Create the local mapping from Key, Strings, Locale
         Class stringRClass = null;
@@ -75,13 +87,16 @@ public class Jitt {
     }
 
     public void openTranslationWindow(View root) {
-        // Extract Strings from View Hierarchy
-        // TODO Show loader for this
-        mViewResourcesStrings.clear();
-        mViewNoneResourcesStrings.clear();
-        extractStringsFromView(root);
+        // TODO add loading screen with cancel option
+        (new PrepareTranslationsView()).execute(root);
+    }
 
-        root.getContext().startActivity(new Intent(root.getContext(), JittMainActivity.class));
+    private List<String> getKeysForStrings(List<String> strings) {
+        List<String> keys = new ArrayList<>();
+        for (String string: strings) {
+            keys.add(mResourcesEntries.get(string).key);
+        }
+        return keys;
     }
 
     private void extractStringsFromView(View view) {
@@ -106,6 +121,48 @@ public class Jitt {
             }
 
         }
+    }
+
+    private class PrepareTranslationsView extends AsyncTask<View, Void, View> {
+
+        @Override
+        protected View doInBackground(View... params) {
+            View root = params[0];
+            // Extract Strings from View Hierarchy
+            mViewResourcesStrings.clear();
+            mViewNoneResourcesStrings.clear();
+            extractStringsFromView(root);
+
+            // Get data from server
+            List<String> translationLangs = new ArrayList<>();
+            translationLangs.add("en");
+            translationLangs.add("he");
+            List<String> keys = getKeysForStrings(mViewResourcesStrings);
+            mSuggestions = mServerAPI.getTranslations(mDeviceId, keys, translationLangs);
+            return root;
+        }
+
+        @Override
+        protected void onPostExecute(View view) {
+            super.onPostExecute(view);
+            view.getContext().startActivity(new Intent(view.getContext(), JittMainActivity.class));
+        }
+    }
+
+    HashMap<String, ArrayList<ServerAPI.Suggestion>> getDataForString(String string) {
+        Entry entry = mResourcesEntries.get(string);
+        String key = entry.key;
+
+        return mSuggestions.get(key);
+    }
+
+    public String[] getAllLocale() {
+        Locale[] locales = Locale.getAvailableLocales();
+        ArrayList<String> localeCountries = new ArrayList<String>();
+        for(Locale l:locales) {
+            localeCountries.add(l.getDisplayLanguage().toString());
+        }
+        return (String[]) localeCountries.toArray(new String[localeCountries.size()]);
     }
 
 }
