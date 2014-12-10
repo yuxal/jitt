@@ -1,8 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="me.everything.jittlib">
-
-    <application android:allowBackup="true"></application>
+    package="me.everything.jittlib" >
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <application android:allowBackup="true" >
+        <activity android:name=".JittMainActivity"/>
+        <activity android:name=".JittTranslateActivity"/>
+    </application>
 
 </manifest>

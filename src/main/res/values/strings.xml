@@ -1,3 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">JITT</string>
+
+    <string name="entries_not_valid_title">Not Translatable</string>
+    <string name="action_settings">Settings</string>
+    <string name="title_activity_jitt_main">Select a string to translate</string>
+    <string name="hello_world">Hello world!</string>
+
 </resources>

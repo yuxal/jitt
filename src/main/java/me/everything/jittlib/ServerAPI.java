@@ -78,8 +78,7 @@ public class ServerAPI {
         return null;
     }
 
-    void getTranslations( String deviceId, List<String> keys, List<String> translationLangs,
-                          ITranslationsReceiver receiver ) {
+    public TranslationResult getTranslations( String deviceId, List<String> keys, List<String> translationLangs) {
         Uri.Builder builder = Uri.parse("http://jitt-server.appspot.com/api/translations").buildUpon();
         builder.appendQueryParameter("device_id",deviceId);
         for ( String key : keys ) {
@@ -92,7 +91,7 @@ public class ServerAPI {
         String data = readFromURL(builder.toString(),false);
         Log.v(TAG, "DATA=" + data);
         TranslationResult parsed = mGson.fromJson(data, TranslationResult.class);
-        receiver.onGotTranslations(parsed);
+        return parsed;
     }
 
     public void doAction( String deviceId, String key, String lang, String suggestion, String action,
