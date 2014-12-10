@@ -1,5 +1,6 @@
 package me.everything.jittlib;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -7,8 +8,11 @@ import android.content.res.Resources;
 import android.os.AsyncTask;
 import android.provider.Settings;
 import android.util.Pair;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.TextView;
 
 import java.lang.reflect.Field;
@@ -64,7 +68,7 @@ public class Jitt {
         return mViewNoneResourcesStrings;
     }
 
-    public void initialize(Context context, Class<?> r) {
+    public void initialize(Activity context, Class<?> r) {
         Resources resources = context.getResources();
         mSP = context.getSharedPreferences("JITT", context.MODE_PRIVATE);
         mCurrentLocle = resources.getConfiguration().locale;
@@ -112,6 +116,19 @@ public class Jitt {
                 }
             }
         }
+
+        final ViewGroup decorView = (ViewGroup)context.getWindow().getDecorView();
+        Button button = new Button(context);
+        button.setText("Translate!");
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openTranslationWindow(decorView);
+            }
+        });
+        FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        layoutParams.gravity = Gravity.CENTER_VERTICAL;
+        decorView.addView(button,layoutParams);
     }
 
     public void openTranslationWindow(View root) {
