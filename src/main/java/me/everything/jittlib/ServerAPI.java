@@ -36,14 +36,6 @@ public class ServerAPI {
     public static class TranslationResult extends HashMap<String,HashMap<String,ArrayList<Suggestion>>> {
     }
 
-    public interface ITranslationsReceiver {
-        public void onGotTranslations( TranslationResult suggestions );
-    }
-
-    public interface IActionDoneReceiver {
-        public void onDone( boolean success );
-    }
-
     public ServerAPI() {
         mGson = new Gson();
     }
@@ -78,7 +70,7 @@ public class ServerAPI {
         return null;
     }
 
-    public TranslationResult getTranslations( String deviceId, List<String> keys, List<String> translationLangs) {
+    public TranslationResult getTranslations( String deviceId, List<String> keys, List<String> translationLangs ) {
         Uri.Builder builder = Uri.parse("http://jitt-server.appspot.com/api/translations").buildUpon();
         builder.appendQueryParameter("device_id",deviceId);
         for ( String key : keys ) {
@@ -94,8 +86,7 @@ public class ServerAPI {
         return parsed;
     }
 
-    public void doAction( String deviceId, String key, String lang, String suggestion, String action,
-                          IActionDoneReceiver receiver ) {
+    public boolean doAction( String deviceId, String key, String lang, String suggestion, String action ) {
         Uri.Builder builder = Uri.parse("http://jitt-server.appspot.com/api/action").buildUpon();
         builder.appendQueryParameter("device_id",deviceId);
         builder.appendQueryParameter("key", key);
@@ -105,7 +96,7 @@ public class ServerAPI {
         Log.d(TAG, "URL=" + builder.toString());
         String data = readFromURL(builder.toString(),true);
         Log.v(TAG, "DATA=" + data);
-        receiver.onDone(data.equals("OK"));
+        return data.equals("OK");
     }
 
 }
