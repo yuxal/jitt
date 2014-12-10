@@ -2,6 +2,7 @@ package me.everything.jittlib;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -12,9 +13,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 
@@ -30,6 +34,7 @@ public class JittMainActivity extends ActionBarActivity {
         getSupportActionBar().setTitle(R.string.title_activity_jitt_main);
         getSupportActionBar().setHomeButtonEnabled(true);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setBackgroundDrawable(new ColorDrawable(Color.parseColor("#13b476")));
 
         mStringListAdapter = new StringsListAdapter();
         mStringsList = (ListView)findViewById(R.id.list);
@@ -81,36 +86,14 @@ public class JittMainActivity extends ActionBarActivity {
         @Override
         public int getCount() {
             List<String> validStrings = Jitt.getInstance().getValidViewStrings();
-            List<String> notValidStrings = Jitt.getInstance().getNoneValidViewStrings();
-            return validStrings.size()
-                   + (notValidStrings.size() > 0 ? 1 + notValidStrings.size(): 0);
-        }
+            return validStrings.size();
 
-        @Override
-        public int getItemViewType(int position) {
-            List<String> validStrings = Jitt.getInstance().getValidViewStrings();
-            if (position < validStrings.size()) {
-                return VIEW_TYPE_VALID_STRING;
-            } else if (position == validStrings.size()) {
-                return VIEW_TYPE_NOT_VALID_STRING_TITLE;
-            } else {
-                return VIEW_TYPE_NOT_VALID_STRING;
-            }
         }
 
         @Override
         public Object getItem(int position) {
             List<String> validStrings = Jitt.getInstance().getValidViewStrings();
-            List<String> notValidStrings = Jitt.getInstance().getNoneValidViewStrings();
-            int type = getItemViewType(position);
-            switch (type) {
-            case VIEW_TYPE_VALID_STRING:
-                return validStrings.get(position);
-            case VIEW_TYPE_NOT_VALID_STRING:
-                return notValidStrings.get(position - 1 - validStrings.size());
-            }
-
-            return null;
+            return validStrings.get(position);
         }
 
         @Override
@@ -120,15 +103,6 @@ public class JittMainActivity extends ActionBarActivity {
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            int viewType = getItemViewType(position);
-            switch (viewType) {
-            case VIEW_TYPE_VALID_STRING:
-                return getValidEntryView(position, convertView, parent);
-            case VIEW_TYPE_NOT_VALID_STRING:
-                return getNotValidEntryView(position, convertView, parent);
-            case VIEW_TYPE_NOT_VALID_STRING_TITLE:
-                return getTitleView(R.string.entries_not_valid_title, convertView,parent);
-            }
             return getValidEntryView(position, convertView, parent);
         }
 
@@ -139,16 +113,30 @@ public class JittMainActivity extends ActionBarActivity {
                 convertView = LayoutInflater.from(JittMainActivity.this).inflate(R.layout.translation_item, parent, false);
 
                 holder.title = (TextView)convertView.findViewById(R.id.name);
+                holder.icon = (ImageView)convertView.findViewById(R.id.icon);
 
                 convertView.setTag(holder);
             } else {
                 holder = (ViewHolder)convertView.getTag();
             }
 
-            holder.title.setAlpha(1f);
-            holder.title.setTextColor(Color.BLACK);
-            convertView.setBackground(null);
-            holder.title.setText((String)getItem(position));
+            String string = (String)getItem(position);
+            holder.title.setText(string);
+
+            // Set Icon
+            boolean missingTranslation = false;
+
+            HashMap<String, ArrayList<ServerAPI.Suggestion>> data = Jitt.getInstance().getDataForString(string);
+            List<String> selectedLocales = Jitt.getInstance().getSelectedLocale();
+            for (String locale: selectedLocales) {
+                ArrayList<ServerAPI.Suggestion> suggestions = data.get(locale);
+                if (suggestions.isEmpty()) {
+                    missingTranslation = true;
+                    break;
+                }
+            }
+
+            holder.icon.setImageResource(missingTranslation? R.drawable.icon_warning_yellow : R.drawable.icon_done);
 
             return convertView;
         }
@@ -185,6 +173,7 @@ public class JittMainActivity extends ActionBarActivity {
 
                 holder.title = (TextView)convertView.findViewById(R.id.name);
 
+
                 convertView.setTag(holder);
             } else {
                 holder = (ViewHolder)convertView.getTag();
@@ -200,6 +189,7 @@ public class JittMainActivity extends ActionBarActivity {
 
         private class ViewHolder {
             public TextView title;
+            public ImageView icon;
         }
     }
 }

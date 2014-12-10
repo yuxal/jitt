@@ -2,6 +2,8 @@ package me.everything.jittlib;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.view.LayoutInflater;
@@ -31,6 +33,7 @@ public class JittSelectLanguagesActivity extends ActionBarActivity {
         getSupportActionBar().setTitle(R.string.action_settings_select_languages);
         getSupportActionBar().setHomeButtonEnabled(true);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setBackgroundDrawable(new ColorDrawable(Color.parseColor("#13b476")));
 
         ListView mylist = (ListView) findViewById(R.id.list);
 

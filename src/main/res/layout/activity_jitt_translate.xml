@@ -1,12 +1,97 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="me.everything.jittlib.JittTranslateActivity">
+    tools:context="me.everything.jittlib.JittTranslateActivity"
+    android:orientation="vertical"
+    android:background="#efefef">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/list_item_bg"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Original String"
+            android:textAllCaps="true"
+            android:textColor="#bfbfbf"
+            android:textSize="16dp"
+            android:paddingLeft="16dp"
+            android:textStyle="bold"
+            android:paddingRight="16dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="4dp"/>
+
+        <TextView
+            android:id="@+id/original_string"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#000000"
+            android:textSize="18dp"
+            android:textStyle="bold"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:paddingBottom="16dp"/>
+
+        </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/suggestion_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/list_item_bg"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/suggestion_lang"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAllCaps="true"
+            android:textColor="#bfbfbf"
+            android:textSize="16dp"
+            android:textStyle="bold"
+            android:paddingTop="8dp"
+            android:paddingBottom="4dp"/>
+
+        <EditText
+            android:id="@+id/suggestion_string"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#000000"
+            android:textSize="18dp"
+            android:maxLines="3"
+            android:paddingBottom="8dp"/>
+
+            <Button
+                android:id="@+id/suggestion_send"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAllCaps="true"
+                android:textColor="#ffffff"
+                android:textSize="16dp"
+                android:textStyle="bold"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:text="Send Translation"
+                android:background="@drawable/button_done_translating"/>
+        </LinearLayout>
+
+
 
     <ListView
         android:id="@+id/list"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        android:dividerHeight="0dp"
+        android:divider="@null"
+        android:listSelector="@android:color/transparent"/>
 
-</RelativeLayout>
+</LinearLayout>

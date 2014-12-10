@@ -9,6 +9,7 @@ import android.os.AsyncTask;
 import android.provider.Settings;
 import android.util.Pair;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -34,6 +35,7 @@ public class Jitt {
     private static final String SELECTED_LOCALES = "jitt_selected_locals";
     private SharedPreferences mSP;
     private Locale mCurrentLocle;
+    private View mLoadingScreen;
 
     public static class Entry {
         public String key;
@@ -129,6 +131,20 @@ public class Jitt {
         FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         layoutParams.gravity = Gravity.CENTER_VERTICAL;
         decorView.addView(button,layoutParams);
+
+
+        mLoadingScreen = LayoutInflater.from(context).inflate(R.layout.loading_screen, null, false);
+        mLoadingScreen.setVisibility(View.GONE);
+        mLoadingScreen.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // DO nothing
+            }
+        });
+
+
+        decorView.addView(mLoadingScreen);
+
     }
 
     public void openTranslationWindow(View root) {
@@ -171,17 +187,23 @@ public class Jitt {
     private class PrepareTranslationsView extends AsyncTask<View, Void, View> {
 
         @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            mLoadingScreen.setVisibility(View.VISIBLE);
+        }
+
+        @Override
         protected View doInBackground(View... params) {
             View root = params[0];
             // Extract Strings from View Hierarchy
             mViewResourcesStrings.clear();
             mViewNoneResourcesStrings.clear();
+
             extractStringsFromView(root);
 
-            // Get data from server
-            List<String> translationLangs = getSelectedLocale();
-            List<String> keys = getKeysForStrings(mViewResourcesStrings);
-            mSuggestions = mServerAPI.getTranslations(mDeviceId, keys, translationLangs);
+            getDataFromServer();
+
+
             return root;
         }
 
@@ -189,7 +211,15 @@ public class Jitt {
         protected void onPostExecute(View view) {
             super.onPostExecute(view);
             view.getContext().startActivity(new Intent(view.getContext(), JittMainActivity.class));
+            mLoadingScreen.setVisibility(View.GONE);
         }
+    }
+
+    private void getDataFromServer() {
+        // Get data from server
+        List<String> translationLangs = getSelectedLocale();
+        List<String> keys = getKeysForStrings(mViewResourcesStrings);
+        mSuggestions = mServerAPI.getTranslations(mDeviceId, keys, translationLangs);
     }
 
     HashMap<String, ArrayList<ServerAPI.Suggestion>> getDataForString(String string) {
@@ -260,6 +290,52 @@ public class Jitt {
 
     public String getLanguageName(String locale) {
         return mLocaleList.get(locale);
+    }
+
+    interface  UserActionListener {
+        void onPreAction();
+        void onPostAction();
+    }
+
+    void sendUserAction(UserActionListener listener, String string, String lang, String suggestion, String action) {
+        (new SendActionTask(listener)).execute(string, lang, suggestion, action);
+    }
+
+    private class SendActionTask extends AsyncTask<String, Void, Void> {
+
+        private final UserActionListener mListener;
+
+        public SendActionTask(UserActionListener listener) {
+            mListener = listener;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            mListener.onPreAction();
+        }
+
+        @Override
+        protected Void doInBackground(String... params) {
+            String string = params[0];
+            String lang = params[1];
+            String suggestion = params[2];
+            String action = params[3];
+            Entry entry = mResourcesEntries.get(string);
+            String key = entry.key;
+            mServerAPI.doAction(mDeviceId, key, lang, suggestion, action);
+
+            // Reload data
+            getDataFromServer();
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void v) {
+            super.onPostExecute(v);
+            mListener.onPostAction();
+        }
     }
 
 }
