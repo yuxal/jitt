@@ -1,0 +1,8 @@
+indexes:
+- kind: Suggestion
+  properties:
+  - name: app_id
+  - name: locale
+  - name: str_key
+  - name: votes
+    direction: desc
