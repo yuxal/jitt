@@ -1,11 +1,16 @@
 package me.everything.jittlib;
 
 import android.app.Activity;
+import android.app.Application;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.os.AsyncTask;
+import android.os.Bundle;
+import android.os.IBinder;
 import android.provider.Settings;
 import android.util.Log;
 import android.util.Pair;
@@ -34,9 +39,13 @@ import java.util.Set;
 public class Jitt {
 
     private static final String SELECTED_LOCALES = "jitt_selected_locals";
+    private static final String TAG = "JITT.main";
     private SharedPreferences mSP;
     private Locale mCurrentLocle;
     private View mLoadingScreen;
+    private JittService mService;
+    private Activity mSavedActivity;
+    private boolean mEnabled = true;
 
     public static class Entry {
         public String key;
@@ -71,11 +80,11 @@ public class Jitt {
         return mViewNoneResourcesStrings;
     }
 
-    public void initialize(Activity context, Class<?>... rs) {
+    public void initialize(Context context, Class<?>... rs) {
         Resources resources = context.getResources();
         mSP = context.getSharedPreferences("JITT", context.MODE_PRIVATE);
         mCurrentLocle = resources.getConfiguration().locale;
-        mServerAPI = new ServerAPI(context);
+        mServerAPI = new ServerAPI(context.getApplicationContext());
         mResourcesEntries.clear();
         mDeviceId = Settings.Secure.getString(context.getContentResolver(),
                 Settings.Secure.ANDROID_ID);
@@ -124,20 +133,6 @@ public class Jitt {
             }
         }
 
-        final ViewGroup decorView = (ViewGroup)context.getWindow().getDecorView();
-        Button button = new Button(context);
-        button.setText("Translate!");
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                openTranslationWindow(decorView);
-            }
-        });
-        FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        layoutParams.gravity = Gravity.CENTER_VERTICAL;
-        decorView.addView(button,layoutParams);
-
-
         mLoadingScreen = LayoutInflater.from(context).inflate(R.layout.loading_screen, null, false);
         mLoadingScreen.setVisibility(View.GONE);
         mLoadingScreen.setOnClickListener(new View.OnClickListener() {
@@ -147,9 +142,70 @@ public class Jitt {
             }
         });
 
+        context.bindService(new Intent(context, JittService.class), new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                Log.v(TAG,"SERVICE CONNECTED");
 
-        decorView.addView(mLoadingScreen);
+                if ( service instanceof JittService.JittLocalBinder) {
+                    JittService.JittLocalBinder binder = (JittService.JittLocalBinder) service;
+                    mService = binder.getService();
+                    if (mSavedActivity != null) {
+                        Log.e(TAG, "Set savedactivity: " + mSavedActivity + " mService=" + mService);
+                        mService.setActivity(mSavedActivity);
+                        mSavedActivity = null;
+                    }
+                    mService.setEnabled(mEnabled);
+                }
+            }
 
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+                mService = null;
+            }
+        }, Context.BIND_AUTO_CREATE);
+
+        ((Application)context.getApplicationContext()).registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
+            @Override
+            public void onActivityCreated(Activity activity, Bundle savedInstanceState) {}
+
+            @Override
+            public void onActivityStarted(Activity activity) {}
+
+            @Override
+            public void onActivityResumed(Activity activity) {
+                Log.e(TAG,"Set activity: "+activity+" mService="+mService);
+                if ( mService != null ) {
+                    mService.setActivity(activity);
+                } else {
+                    mSavedActivity = activity;
+                }
+            }
+
+            @Override
+            public void onActivityPaused(Activity activity) {
+                mService.setActivity(null);
+            }
+
+            @Override
+            public void onActivityStopped(Activity activity) {}
+
+            @Override
+            public void onActivitySaveInstanceState(Activity activity, Bundle outState) {}
+
+            @Override
+            public void onActivityDestroyed(Activity activity) {}
+        });
+//        decorView.addView(mLoadingScreen);
+
+    }
+
+    public void setEnabled(boolean enabled) {
+        mEnabled = enabled;
+        Log.e(TAG,"setEnabled="+enabled);
+        if ( mService != null ) {
+            mService.setEnabled(mEnabled);
+        }
     }
 
     public void openTranslationWindow(View root) {
@@ -239,7 +295,6 @@ public class Jitt {
     public List<Map.Entry<String, String>> getAllLocale() {
         Set<Map.Entry<String, String>> keys = mLocaleList.entrySet();
 
-        // TODO ORDER SMART?
         List<Map.Entry<String, String>> allLocale = new ArrayList<>(keys.size());
         allLocale.addAll(keys);
         Collections.sort(allLocale, new Comparator<Map.Entry<String, String>>() {
@@ -268,6 +323,7 @@ public class Jitt {
                 String currentLocale = mCurrentLocle.getLanguage();
 
                 addSelectedLocale("en");
+                addSelectedLocale("he");
                 addSelectedLocale(currentLocale);
             }
         }

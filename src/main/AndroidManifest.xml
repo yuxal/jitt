@@ -3,11 +3,17 @@
     package="me.everything.jittlib" >
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 
     <application android:allowBackup="true" >
         <activity android:name=".JittMainActivity" android:theme="@style/Theme.AppCompat.Light"/>
         <activity android:name=".JittTranslateActivity"  android:theme="@style/Theme.AppCompat.Light"/>
         <activity android:name=".JittSelectLanguagesActivity"  android:theme="@style/Theme.AppCompat.Light"/>
+        <service
+            android:name=".JittService"
+            android:enabled="true"
+            android:exported="false" >
+        </service>
     </application>
 
 </manifest>
