@@ -42,7 +42,7 @@ public class Jitt {
     private static final String TAG = "JITT.main";
     private SharedPreferences mSP;
     private Locale mCurrentLocle;
-    private View mLoadingScreen;
+    //private View mLoadingScreen;
     private JittService mService;
     private Activity mSavedActivity;
     private boolean mEnabled = true;
@@ -133,14 +133,14 @@ public class Jitt {
             }
         }
 
-        mLoadingScreen = LayoutInflater.from(context).inflate(R.layout.loading_screen, null, false);
-        mLoadingScreen.setVisibility(View.GONE);
-        mLoadingScreen.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // DO nothing
-            }
-        });
+        //mLoadingScreen = LayoutInflater.from(context).inflate(R.layout.loading_screen, null, false);
+        //mLoadingScreen.setVisibility(View.GONE);
+        //mLoadingScreen.setOnClickListener(new View.OnClickListener() {
+        //    @Override
+        //    public void onClick(View v) {
+        //       // DO nothing
+        //    }
+        //});
 
         context.bindService(new Intent(context, JittService.class), new ServiceConnection() {
             @Override
@@ -252,7 +252,7 @@ public class Jitt {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
-            mLoadingScreen.setVisibility(View.VISIBLE);
+            //mLoadingScreen.setVisibility(View.VISIBLE);
         }
 
         @Override
@@ -274,7 +274,7 @@ public class Jitt {
         protected void onPostExecute(View view) {
             super.onPostExecute(view);
             view.getContext().startActivity(new Intent(view.getContext(), JittMainActivity.class));
-            mLoadingScreen.setVisibility(View.GONE);
+            //mLoadingScreen.setVisibility(View.GONE);
         }
     }
 
