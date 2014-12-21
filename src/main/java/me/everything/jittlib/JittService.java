@@ -19,7 +19,11 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
+import com.melnykov.fab.FloatingActionButton;
+
 import java.lang.ref.WeakReference;
+
+import static android.view.ViewGroup.LayoutParams;
 
 /**
  * Created by adam on 12/11/14.
@@ -28,7 +32,7 @@ public class JittService extends Service {
 
     private WindowManager windowManager;
     private WeakReference<Activity> mActivity;
-    private ImageView button;
+    private FloatingActionButton button;
     WindowManager.LayoutParams params;
 
     private final IBinder mBinder = new JittLocalBinder();
@@ -43,13 +47,14 @@ public class JittService extends Service {
 
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
 
-        button = new ImageView(this);
+        button = new FloatingActionButton(this);
         button.setImageResource(R.drawable.translate_icon_2);
         button.setAdjustViewBounds(true);
+
         final float scale = getResources().getDisplayMetrics().density;
-        button.setMaxWidth((int) (48*scale));
-        button.setMaxHeight((int) (48*scale));
-        button.setScaleType(ImageView.ScaleType.FIT_CENTER);
+//        button.setMaxWidth((int) (48*scale));
+//        button.setMaxHeight((int) (48*scale));
+//        button.setScaleType(ImageView.ScaleType.FIT_CENTER);
 
         params = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -86,7 +91,7 @@ public class JittService extends Service {
                                 a = mActivity.get();
                             }
                             if ( a != null ) {
-                                button.setVisibility(View.GONE);
+                                button.hide();
                                 Jitt.getInstance().openTranslationWindow((ViewGroup) a.getWindow().getDecorView());
                             }
                         }
@@ -113,12 +118,12 @@ public class JittService extends Service {
 
     public void setActivity(Activity activity) {
         if ( activity == null ) {
-            button.setVisibility(View.GONE);
+            button.hide();
         } else if ( activity.getClass().getPackage().getName().equals("me.everything.jittlib") ) {
-            button.setVisibility(View.GONE);
+            button.hide();
         } else {
             if ( mEnabled ) {
-                button.setVisibility(View.VISIBLE);
+                button.show();
             }
             mActivity = new WeakReference<Activity>(activity);
         }
@@ -133,9 +138,9 @@ public class JittService extends Service {
                 android.util.Log.e("XXX","actual setEnabled="+enabled);
                 if ( button != null ) {
                     if ( enabled ) {
-                        button.setVisibility(View.VISIBLE);
+                        button.show();
                     } else {
-                        button.setVisibility(View.GONE);
+                        button.hide();
                     }
                 }
             }

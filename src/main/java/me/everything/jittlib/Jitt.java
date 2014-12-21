@@ -184,7 +184,7 @@ public class Jitt {
 
             @Override
             public void onActivityPaused(Activity activity) {
-                mService.setActivity(null);
+                if ( mService != null ) { mService.setActivity(null); }
             }
 
             @Override
