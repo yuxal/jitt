@@ -10,21 +10,17 @@ import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.provider.Settings;
 import android.util.Log;
-import android.util.Pair;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.FrameLayout;
 import android.widget.TextView;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -41,11 +37,14 @@ public class Jitt {
     private static final String SELECTED_LOCALES = "jitt_selected_locals";
     private static final String TAG = "JITT.main";
     private SharedPreferences mSP;
-    private Locale mCurrentLocle;
-    //private View mLoadingScreen;
+    private Locale mCurrentLocale;
+    private PrepareTranslationsView mPrepareTranslationsTask = null;
+    private View mLoadingScreen;
     private JittService mService;
     private Activity mSavedActivity;
     private boolean mEnabled = true;
+    private Handler mHandler;
+    private Runnable mDelayedPauseUpdate;
 
     public static class Entry {
         public String key;
@@ -83,8 +82,15 @@ public class Jitt {
     public void initialize(Context context, Class<?>... rs) {
         Resources resources = context.getResources();
         mSP = context.getSharedPreferences("JITT", context.MODE_PRIVATE);
-        mCurrentLocle = resources.getConfiguration().locale;
+        mCurrentLocale = resources.getConfiguration().locale;
         mServerAPI = new ServerAPI(context.getApplicationContext());
+        mHandler = new Handler();
+        mDelayedPauseUpdate = new Runnable() {
+            @Override
+            public void run() {
+                mService.setActivity(null);
+            }
+        };
         mResourcesEntries.clear();
         mDeviceId = Settings.Secure.getString(context.getContentResolver(),
                 Settings.Secure.ANDROID_ID);
@@ -133,14 +139,13 @@ public class Jitt {
             }
         }
 
-        //mLoadingScreen = LayoutInflater.from(context).inflate(R.layout.loading_screen, null, false);
-        //mLoadingScreen.setVisibility(View.GONE);
-        //mLoadingScreen.setOnClickListener(new View.OnClickListener() {
-        //    @Override
-        //    public void onClick(View v) {
-        //       // DO nothing
-        //    }
-        //});
+        mLoadingScreen = LayoutInflater.from(context).inflate(R.layout.loading_screen, null, false);
+        mLoadingScreen.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+               // DO nothing
+            }
+        });
 
         context.bindService(new Intent(context, JittService.class), new ServiceConnection() {
             @Override
@@ -155,7 +160,6 @@ public class Jitt {
                         mService.setActivity(mSavedActivity);
                         mSavedActivity = null;
                     }
-                    mService.setEnabled(mEnabled);
                 }
             }
 
@@ -174,6 +178,7 @@ public class Jitt {
 
             @Override
             public void onActivityResumed(Activity activity) {
+                mHandler.removeCallbacks(mDelayedPauseUpdate);
                 Log.e(TAG,"Set activity: "+activity+" mService="+mService);
                 if ( mService != null ) {
                     mService.setActivity(activity);
@@ -184,7 +189,10 @@ public class Jitt {
 
             @Override
             public void onActivityPaused(Activity activity) {
-                if ( mService != null ) { mService.setActivity(null); }
+                if ( mService != null ) {
+                    // To prevent Icon flicker when changing in app activities
+                    mHandler.postDelayed(mDelayedPauseUpdate, 100);
+                }
             }
 
             @Override
@@ -196,8 +204,6 @@ public class Jitt {
             @Override
             public void onActivityDestroyed(Activity activity) {}
         });
-//        decorView.addView(mLoadingScreen);
-
     }
 
     public void setEnabled(boolean enabled) {
@@ -208,9 +214,11 @@ public class Jitt {
         }
     }
 
-    public void openTranslationWindow(View root) {
-        // TODO add loading screen with cancel option
-        (new PrepareTranslationsView()).execute(root);
+    public void openTranslationWindow(ViewGroup root) {
+        if (mPrepareTranslationsTask == null) {
+            mPrepareTranslationsTask = new PrepareTranslationsView(root);
+            mPrepareTranslationsTask.execute();
+        }
     }
 
     private List<String> getKeysForStrings(List<String> strings) {
@@ -247,17 +255,24 @@ public class Jitt {
         }
     }
 
-    private class PrepareTranslationsView extends AsyncTask<View, Void, View> {
+    private class PrepareTranslationsView extends AsyncTask<Void, Void, Void> {
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            //mLoadingScreen.setVisibility(View.VISIBLE);
+        private ViewGroup mRoot;
+
+        public PrepareTranslationsView(ViewGroup root) {
+            mRoot = root;
         }
 
         @Override
-        protected View doInBackground(View... params) {
-            View root = params[0];
+        protected void onPreExecute() {
+            // We want to disable the button while loading
+            mService.setEnabled(false);
+            mRoot.addView(mLoadingScreen);
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            View root = mRoot;
             // Extract Strings from View Hierarchy
             mViewResourcesStrings.clear();
             mViewNoneResourcesStrings.clear();
@@ -267,14 +282,14 @@ public class Jitt {
             getDataFromServer();
 
 
-            return root;
+            return null;
         }
 
         @Override
-        protected void onPostExecute(View view) {
-            super.onPostExecute(view);
-            view.getContext().startActivity(new Intent(view.getContext(), JittMainActivity.class));
-            //mLoadingScreen.setVisibility(View.GONE);
+        protected void onPostExecute(Void view) {
+            mRoot.getContext().startActivity(new Intent(mRoot.getContext(), JittMainActivity.class));
+            mRoot.removeView(mLoadingScreen);
+            mPrepareTranslationsTask = null;
         }
     }
 
@@ -320,7 +335,7 @@ public class Jitt {
             }
             if (mSelectedLocale.isEmpty()) {
                 // Add at least selected locale and ENG?
-                String currentLocale = mCurrentLocle.getLanguage();
+                String currentLocale = mCurrentLocale.getLanguage();
 
                 addSelectedLocale("en");
                 addSelectedLocale("he");

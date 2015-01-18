@@ -1,5 +1,9 @@
 package me.everything.jittlib;
 
+import android.animation.Animator;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.Service;
 import android.content.Intent;
@@ -7,36 +11,33 @@ import android.graphics.PixelFormat;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewParent;
-import android.view.ViewRootImpl;
-import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Button;
-import android.widget.FrameLayout;
-import android.widget.ImageView;
+import android.view.animation.BounceInterpolator;
 
 import com.melnykov.fab.FloatingActionButton;
 
 import java.lang.ref.WeakReference;
-
-import static android.view.ViewGroup.LayoutParams;
 
 /**
  * Created by adam on 12/11/14.
  */
 public class JittService extends Service {
 
-    private WindowManager windowManager;
+    private WindowManager mWindowManager;
     private WeakReference<Activity> mActivity;
-    private FloatingActionButton button;
-    WindowManager.LayoutParams params;
+    private FloatingActionButton mOpenJittButton;
+    WindowManager.LayoutParams mOpenJittButtonparams;
+    private boolean mEnabled = false;
+
+    private AnimatorSet mOpenJittButtonScaleInAnimation = null;
+    private AnimatorSet mOpenJittButtonScaleOutAnimation = null;
 
     private final IBinder mBinder = new JittLocalBinder();
-    private boolean mEnabled = true;
 
     @Override public IBinder onBind(Intent intent) {
         return mBinder;
@@ -44,107 +45,92 @@ public class JittService extends Service {
 
     @Override public void onCreate() {
         super.onCreate();
+        mWindowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
 
-        windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+        mOpenJittButton = new FloatingActionButton(this);
+        mOpenJittButton.setImageResource(R.drawable.translate_icon_2);
+        mOpenJittButton.setAdjustViewBounds(true);
 
-        button = new FloatingActionButton(this);
-        button.setImageResource(R.drawable.translate_icon_2);
-        button.setAdjustViewBounds(true);
-
-        final float scale = getResources().getDisplayMetrics().density;
-//        button.setMaxWidth((int) (48*scale));
-//        button.setMaxHeight((int) (48*scale));
-//        button.setScaleType(ImageView.ScaleType.FIT_CENTER);
-
-        params = new WindowManager.LayoutParams(
+        mOpenJittButtonparams = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.TYPE_PHONE,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.TRANSLUCENT);
 
-        params.gravity = Gravity.TOP | Gravity.LEFT;
-        params.x = 630;
-        params.y = 0;
+        mOpenJittButtonparams.gravity = Gravity.TOP | Gravity.LEFT;
+        mOpenJittButtonparams.x = 630;
+        mOpenJittButtonparams.y = 0;
 
-        button.setOnTouchListener(new View.OnTouchListener() {
+        mOpenJittButton.setOnTouchListener(new View.OnTouchListener() {
             private int initialX;
             private int initialY;
             private float initialTouchX;
             private float initialTouchY;
             private long initialTouchTS;
 
-            @Override public boolean onTouch(View v, MotionEvent event) {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
-                        initialX = params.x;
-                        initialY = params.y;
+                        initialX = mOpenJittButtonparams.x;
+                        initialY = mOpenJittButtonparams.y;
                         initialTouchX = event.getRawX();
                         initialTouchY = event.getRawY();
                         initialTouchTS = System.currentTimeMillis();
                         return true;
                     case MotionEvent.ACTION_UP:
-                        if ( System.currentTimeMillis() - initialTouchTS < 250 ) {
+                        if (System.currentTimeMillis() - initialTouchTS < 250) {
                             initialTouchTS = 0;
-                            Activity a = null;
+                            Activity activity = null;
                             if (mActivity != null) {
-                                a = mActivity.get();
+                                activity = mActivity.get();
                             }
-                            if ( a != null ) {
-                                button.hide();
-                                Jitt.getInstance().openTranslationWindow((ViewGroup) a.getWindow().getDecorView());
+                            if (activity != null) {
+                                Jitt.getInstance().openTranslationWindow((ViewGroup) activity.getWindow().getDecorView());
                             }
                         }
                         return true;
                     case MotionEvent.ACTION_MOVE:
-                        params.x = initialX + (int) (event.getRawX() - initialTouchX);
-                        params.y = initialY + (int) (event.getRawY() - initialTouchY);
-//                        android.util.Log.e("XXX","XYXYXY "+params.x+" "+params.y);
-                        windowManager.updateViewLayout(button, params);
+                        mOpenJittButtonparams.x = initialX + (int) (event.getRawX() - initialTouchX);
+                        mOpenJittButtonparams.y = initialY + (int) (event.getRawY() - initialTouchY);
+                        mWindowManager.updateViewLayout(mOpenJittButton, mOpenJittButtonparams);
                         return true;
                 }
                 return false;
             }
         });
-
-        windowManager.addView(button, params);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (button != null) windowManager.removeView(button);
+        setEnabled(false);
     }
 
     public void setActivity(Activity activity) {
-        if ( activity == null ) {
-            button.hide();
+        if (activity == null) {
+            setEnabled(false);
         } else if ( activity.getClass().getPackage().getName().equals("me.everything.jittlib") ) {
-            button.hide();
+            setEnabled(false);
         } else {
-            if ( mEnabled ) {
-                button.show();
-            }
             mActivity = new WeakReference<Activity>(activity);
+            setEnabled(true);
         }
     }
 
-    public void setEnabled(final boolean enabled) {
-        android.util.Log.e("XXX","setEnabled="+enabled);
-        new Handler().post( new Runnable() {
-            @Override
-            public void run() {
-                mEnabled = enabled;
-                android.util.Log.e("XXX","actual setEnabled="+enabled);
-                if ( button != null ) {
-                    if ( enabled ) {
-                        button.show();
-                    } else {
-                        button.hide();
-                    }
-                }
-            }
-        });
+    public synchronized void setEnabled(final boolean enabled) {
+        if (mEnabled == enabled || mOpenJittButton == null) {
+            return;
+        }
+
+        if (enabled) {
+            mWindowManager.addView(mOpenJittButton, mOpenJittButtonparams);
+        } else {
+            mWindowManager.removeView(mOpenJittButton);
+        }
+
+        mEnabled = enabled;
     }
 
     public class JittLocalBinder extends Binder {
