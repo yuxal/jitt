@@ -1,5 +1,6 @@
 package me.everything.jittlib;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -22,10 +23,13 @@ import java.util.HashMap;
 import java.util.List;
 
 
-public class JittMainActivity extends ActionBarActivity {
+public class JittMainActivity extends ActionBarActivity implements Jitt.UserActionListener {
+
+    private static final int RC_SELECT_LANGUAGES = 1010;
 
     private ListView mStringsList;
     private StringsListAdapter mStringListAdapter;
+    private View mLoadingScreen;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +53,19 @@ public class JittMainActivity extends ActionBarActivity {
                 startActivity(intent);
             }
         });
+
+        final ViewGroup decorView = (ViewGroup)this.getWindow().getDecorView();
+
+        mLoadingScreen = LayoutInflater.from(this).inflate(R.layout.loading_screen, null, false);
+        mLoadingScreen.setVisibility(View.GONE);
+        mLoadingScreen.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // DO nothing
+            }
+        });
+
+        decorView.addView(mLoadingScreen);
     }
 
     @Override
@@ -56,6 +73,19 @@ public class JittMainActivity extends ActionBarActivity {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_jitt_main, menu);
         return true;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (RC_SELECT_LANGUAGES == requestCode) {
+            if (Activity.RESULT_OK == resultCode) {
+                // There was a change in the languages, we need to reload
+                Jitt.getInstance().updateData(this);
+            }
+        }
+
     }
 
     @Override
@@ -67,7 +97,7 @@ public class JittMainActivity extends ActionBarActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            startActivity(new Intent(this, JittSelectLanguagesActivity.class));
+            startActivityForResult(new Intent(this, JittSelectLanguagesActivity.class), RC_SELECT_LANGUAGES);
             return true;
         } else if (id == R.id.home || id == R.id.homeAsUp || id == android.R.id.home) {
             finish();
@@ -75,6 +105,17 @@ public class JittMainActivity extends ActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onPreAction() {
+        mLoadingScreen.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    public void onPostAction() {
+        mStringListAdapter.notifyDataSetChanged();
+        mLoadingScreen.setVisibility(View.GONE);
     }
 
     private class StringsListAdapter extends BaseAdapter {

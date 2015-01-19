@@ -281,7 +281,6 @@ public class Jitt {
 
             getDataFromServer();
 
-
             return null;
         }
 
@@ -338,7 +337,6 @@ public class Jitt {
                 String currentLocale = mCurrentLocale.getLanguage();
 
                 addSelectedLocale("en");
-                addSelectedLocale("he");
                 addSelectedLocale(currentLocale);
             }
         }
@@ -418,4 +416,38 @@ public class Jitt {
         }
     }
 
+
+    void updateData(UserActionListener listener) {
+        (new UpdateDataTask(listener)).execute();
+    }
+
+    private class UpdateDataTask extends AsyncTask<String, Void, Void> {
+
+        private final UserActionListener mListener;
+
+        public UpdateDataTask(UserActionListener listener) {
+            mListener = listener;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            mListener.onPreAction();
+        }
+
+        @Override
+        protected Void doInBackground(String... params) {
+
+            // Reload data
+            getDataFromServer();
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void v) {
+            super.onPostExecute(v);
+            mListener.onPostAction();
+        }
+    }
 }

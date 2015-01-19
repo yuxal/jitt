@@ -2,6 +2,7 @@ package me.everything.jittlib;
 
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -34,6 +35,7 @@ import java.util.Set;
 
 public class JittTranslateActivity extends ActionBarActivity implements Jitt.UserActionListener {
 
+    private static final int RC_SELECT_LANGUAGES = 1010;
     public static String EXTRA_STRING_VALUE = "value";
     private String mString;
     private ListView mList;
@@ -91,8 +93,6 @@ public class JittTranslateActivity extends ActionBarActivity implements Jitt.Use
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setBackgroundDrawable(new ColorDrawable(Color.parseColor("#13b476")));
 
-
-
         TextView originalString = (TextView)findViewById(R.id.original_string);
         originalString.setText(mString);
 
@@ -101,7 +101,6 @@ public class JittTranslateActivity extends ActionBarActivity implements Jitt.Use
         mAdapter = new SuggestionsListAdapter();
         mList = (ListView)findViewById(R.id.list);
         mList.setAdapter(mAdapter);
-
 
         mSuggestion = (ViewGroup)findViewById(R.id.suggestion_container);
         mSuggestionTitle = (TextView)findViewById(R.id.suggestion_lang);
@@ -177,6 +176,18 @@ public class JittTranslateActivity extends ActionBarActivity implements Jitt.Use
         super.onBackPressed();
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (RC_SELECT_LANGUAGES == requestCode) {
+            if (Activity.RESULT_OK == resultCode) {
+                // There was a change in the languages, we need to reload
+                Jitt.getInstance().updateData(this);
+            }
+        }
+    }
+
     private void closeSuggestionInput() {
         mSuggestion.setVisibility(View.GONE);
         mList.setVisibility(View.VISIBLE);
@@ -201,7 +212,7 @@ public class JittTranslateActivity extends ActionBarActivity implements Jitt.Use
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            startActivity(new Intent(this, JittSelectLanguagesActivity.class));
+            startActivityForResult(new Intent(this, JittSelectLanguagesActivity.class), RC_SELECT_LANGUAGES);
             return true;
         }  else if (id == R.id.home || id == R.id.homeAsUp || id == android.R.id.home) {
             onBackPressed();

@@ -30,6 +30,9 @@ public class JittSelectLanguagesActivity extends ActionBarActivity {
 
         setContentView(R.layout.activity_select_languages);
 
+        // We start by indicating that nothing was changed
+        setResult(Activity.RESULT_CANCELED);
+
         getSupportActionBar().setTitle(R.string.action_settings_select_languages);
         getSupportActionBar().setHomeButtonEnabled(true);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -119,6 +122,9 @@ public class JittSelectLanguagesActivity extends ActionBarActivity {
                 Jitt.getInstance().addSelectedLocale(localeKey);
             }
             holder.text.setChecked(!isChecked);
+
+            // Data was changed - we want to return that info
+            setResult(Activity.RESULT_OK);
         }
 
         private class ViewHolder {
