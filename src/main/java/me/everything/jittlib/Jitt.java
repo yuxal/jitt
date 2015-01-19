@@ -17,6 +17,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import java.lang.reflect.Field;
@@ -238,20 +239,34 @@ public class Jitt {
                 View child = viewGroup.getChildAt(index);
                 extractStringsFromView(child);
             }
-        } else if (view instanceof TextView) {
+        }
+
+        if (view instanceof TextView) {
             // We have one!
             TextView textView = (TextView)view;
             String string = textView.getText().toString();
-            if ( string.length() > 0 ) {
+            addViewString(string);
 
-                if (mResourcesEntries.containsKey(string)) {
-                    // This string has a corresponding entry in string XML
-                    mViewResourcesStrings.add(string);
-                } else {
-                    mViewNoneResourcesStrings.add(string);
-                }
+        }
+
+        if (view instanceof EditText) {
+            // We have one!
+            EditText textView = (EditText)view;
+            String string = textView.getHint().toString();
+            addViewString(string);
+
+        }
+    }
+
+    private void addViewString(String string) {
+        if ( string.length() > 0 ) {
+
+            if (mResourcesEntries.containsKey(string)) {
+                // This string has a corresponding entry in string XML
+                mViewResourcesStrings.add(string);
+            } else {
+                mViewNoneResourcesStrings.add(string);
             }
-
         }
     }
 
