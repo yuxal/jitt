@@ -3,21 +3,22 @@ package me.everything.jittlib;
 import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
-import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.Service;
 import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.os.Binder;
-import android.os.Handler;
 import android.os.IBinder;
-import android.util.Log;
+import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.animation.AccelerateInterpolator;
 import android.view.animation.BounceInterpolator;
+import android.view.animation.DecelerateInterpolator;
+import android.widget.FrameLayout;
 
 import com.melnykov.fab.FloatingActionButton;
 
@@ -30,8 +31,9 @@ public class JittService extends Service {
 
     private WindowManager mWindowManager;
     private WeakReference<Activity> mActivity;
+    private ViewGroup mParentView;
     private FloatingActionButton mOpenJittButton;
-    WindowManager.LayoutParams mOpenJittButtonparams;
+    WindowManager.LayoutParams mWindowParams;
     private boolean mEnabled = false;
 
     private AnimatorSet mOpenJittButtonScaleInAnimation = null;
@@ -48,38 +50,54 @@ public class JittService extends Service {
         mWindowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
 
         mOpenJittButton = new FloatingActionButton(this);
-        mOpenJittButton.setImageResource(R.drawable.translate_icon_2);
-        mOpenJittButton.setAdjustViewBounds(true);
+        mOpenJittButton.setImageResource(R.drawable.translate_icon);
+        mOpenJittButton.setColorNormalResId(R.color.translate_icon_normal);
+        mOpenJittButton.setColorPressedResId(R.color.translate_icon_pressed);
+        mOpenJittButton.setColorRippleResId(R.color.translate_icon_ripple);
+        mOpenJittButton.setScaleX(0f);
+        mOpenJittButton.setScaleY(0f);
 
-        mOpenJittButtonparams = new WindowManager.LayoutParams(
+        FrameLayout.LayoutParams params =  new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+
+        mParentView = new FrameLayout(this);
+        // Allow shadow to be fe fully drawn
+        mParentView.setClipToPadding(false);
+        mParentView.setPadding(10,10,10,20);
+        mParentView.addView(mOpenJittButton, params);
+
+        mWindowParams = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.TYPE_PHONE,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.TRANSLUCENT);
 
-        mOpenJittButtonparams.gravity = Gravity.TOP | Gravity.LEFT;
-        mOpenJittButtonparams.x = 630;
-        mOpenJittButtonparams.y = 0;
+        mWindowParams.gravity = Gravity.TOP | Gravity.LEFT;
+        mWindowParams.x = 630;
+        mWindowParams.y = 0;
 
         mOpenJittButton.setOnTouchListener(new View.OnTouchListener() {
-            private int initialX;
-            private int initialY;
+            private float initialX;
+            private float initialY;
             private float initialTouchX;
             private float initialTouchY;
             private long initialTouchTS;
 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getAction()) {
+                int action = event.getActionMasked();
+                switch (action) {
                     case MotionEvent.ACTION_DOWN:
-                        initialX = mOpenJittButtonparams.x;
-                        initialY = mOpenJittButtonparams.y;
+                        mOpenJittButton.setPressed(true);
+                        initialX = mWindowParams.x;
+                        initialY = mWindowParams.y;
                         initialTouchX = event.getRawX();
                         initialTouchY = event.getRawY();
                         initialTouchTS = System.currentTimeMillis();
+
                         return true;
                     case MotionEvent.ACTION_UP:
+                        mOpenJittButton.setPressed(false);
                         if (System.currentTimeMillis() - initialTouchTS < 250) {
                             initialTouchTS = 0;
                             Activity activity = null;
@@ -92,14 +110,25 @@ public class JittService extends Service {
                         }
                         return true;
                     case MotionEvent.ACTION_MOVE:
-                        mOpenJittButtonparams.x = initialX + (int) (event.getRawX() - initialTouchX);
-                        mOpenJittButtonparams.y = initialY + (int) (event.getRawY() - initialTouchY);
-                        mWindowManager.updateViewLayout(mOpenJittButton, mOpenJittButtonparams);
+                        mWindowParams.x = (int) (initialX + (event.getRawX() - initialTouchX));
+                        mWindowParams.y = (int) (initialY + (event.getRawY() - initialTouchY));
+                        updateWindow();
                         return true;
                 }
                 return false;
             }
         });
+    }
+
+    private void updateWindow() {
+        try {
+            if (mEnabled) {
+                mWindowManager.updateViewLayout(mParentView, mWindowParams);
+            }
+        } catch (IllegalArgumentException e) {
+            // View not attached to window manager
+            // do nothing
+        }
     }
 
     @Override
@@ -120,14 +149,62 @@ public class JittService extends Service {
     }
 
     public synchronized void setEnabled(final boolean enabled) {
-        if (mEnabled == enabled || mOpenJittButton == null) {
+        if (mEnabled == enabled || mOpenJittButton == null || mWindowParams == null) {
             return;
         }
 
+        if (mOpenJittButtonScaleInAnimation != null) {
+            mOpenJittButtonScaleInAnimation.cancel();
+            mOpenJittButtonScaleInAnimation = null;
+        }
+
+        if (mOpenJittButtonScaleOutAnimation != null) {
+            mOpenJittButtonScaleOutAnimation.cancel();
+            mOpenJittButtonScaleOutAnimation = null;
+        }
+
         if (enabled) {
-            mWindowManager.addView(mOpenJittButton, mOpenJittButtonparams);
+            mWindowManager.addView(mParentView, mWindowParams);
+            // Animate inner button
+            ObjectAnimator scaleInX = ObjectAnimator.ofFloat(mOpenJittButton,"scaleX",0f, 1f);
+            ObjectAnimator scaleInY = ObjectAnimator.ofFloat(mOpenJittButton,"scaleY",0f, 1f);
+            mOpenJittButtonScaleInAnimation = new AnimatorSet();
+            mOpenJittButtonScaleInAnimation.playTogether(scaleInX, scaleInY);
+            mOpenJittButtonScaleInAnimation.setDuration(500);
+            mOpenJittButtonScaleInAnimation.setStartDelay(300);
+            mOpenJittButtonScaleInAnimation.setInterpolator(new BounceInterpolator());
+            mOpenJittButtonScaleInAnimation.start();
+
         } else {
-            mWindowManager.removeView(mOpenJittButton);
+            // Animate inner button
+            ObjectAnimator scaleInX = ObjectAnimator.ofFloat(mOpenJittButton,"scaleX",1f, 0f);
+            ObjectAnimator scaleInY = ObjectAnimator.ofFloat(mOpenJittButton,"scaleY",1f, 0f);
+            mOpenJittButtonScaleOutAnimation = new AnimatorSet();
+            mOpenJittButtonScaleOutAnimation.playTogether(scaleInX, scaleInY);
+            mOpenJittButtonScaleOutAnimation.setDuration(200);
+            mOpenJittButtonScaleOutAnimation.setInterpolator(new DecelerateInterpolator());
+            mOpenJittButtonScaleOutAnimation.addListener(new Animator.AnimatorListener() {
+                @Override
+                public void onAnimationStart(Animator animation) {
+
+                }
+
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    mWindowManager.removeView(mParentView);
+                }
+
+                @Override
+                public void onAnimationCancel(Animator animation) {
+
+                }
+
+                @Override
+                public void onAnimationRepeat(Animator animation) {
+
+                }
+            });
+            mOpenJittButtonScaleOutAnimation.start();
         }
 
         mEnabled = enabled;
@@ -138,5 +215,4 @@ public class JittService extends Service {
             return JittService.this;
         }
     }
-
 }

@@ -43,9 +43,11 @@ public class Jitt {
     private View mLoadingScreen;
     private JittService mService;
     private Activity mSavedActivity;
-    private boolean mEnabled = true;
+    private boolean mEnabled = false;
     private Handler mHandler;
     private Runnable mDelayedPauseUpdate;
+    private Intent mServiceIntent;
+    private ServiceConnection mServiceConnection;
 
     public static class Entry {
         public String key;
@@ -148,27 +150,6 @@ public class Jitt {
             }
         });
 
-        context.bindService(new Intent(context, JittService.class), new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName name, IBinder service) {
-                Log.v(TAG,"SERVICE CONNECTED");
-
-                if ( service instanceof JittService.JittLocalBinder) {
-                    JittService.JittLocalBinder binder = (JittService.JittLocalBinder) service;
-                    mService = binder.getService();
-                    if (mSavedActivity != null) {
-                        Log.e(TAG, "Set savedactivity: " + mSavedActivity + " mService=" + mService);
-                        mService.setActivity(mSavedActivity);
-                        mSavedActivity = null;
-                    }
-                }
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName name) {
-                mService = null;
-            }
-        }, Context.BIND_AUTO_CREATE);
 
         ((Application)context.getApplicationContext()).registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
             @Override
@@ -181,11 +162,7 @@ public class Jitt {
             public void onActivityResumed(Activity activity) {
                 mHandler.removeCallbacks(mDelayedPauseUpdate);
                 Log.e(TAG,"Set activity: "+activity+" mService="+mService);
-                if ( mService != null ) {
-                    mService.setActivity(activity);
-                } else {
-                    mSavedActivity = activity;
-                }
+                setCurrentActivity(activity);
             }
 
             @Override
@@ -207,12 +184,77 @@ public class Jitt {
         });
     }
 
-    public void setEnabled(boolean enabled) {
-        mEnabled = enabled;
-        Log.e(TAG,"setEnabled="+enabled);
+    public void setCurrentActivity(Activity activity) {
         if ( mService != null ) {
-            mService.setEnabled(mEnabled);
+            mService.setActivity(activity);
+        } else {
+            mSavedActivity = activity;
         }
+    }
+
+    private boolean startService(Context context) {
+        if (mServiceIntent == null && mServiceConnection == null && mService == null) {
+            mServiceIntent = new Intent(context, JittService.class);
+
+            mServiceConnection = new ServiceConnection() {
+                @Override
+                public void onServiceConnected(ComponentName name, IBinder service) {
+                    Log.v(TAG, "SERVICE CONNECTED");
+
+                    if (service instanceof JittService.JittLocalBinder) {
+                        JittService.JittLocalBinder binder = (JittService.JittLocalBinder) service;
+                        mService = binder.getService();
+                        if (mSavedActivity != null) {
+                            Log.e(TAG, "Set savedactivity: " + mSavedActivity + " mService=" + mService);
+                            mService.setActivity(mSavedActivity);
+                            mSavedActivity = null;
+                        }
+                    }
+                }
+
+                @Override
+                public void onServiceDisconnected(ComponentName name) {
+                    mService = null;
+                }
+            };
+
+            return context.bindService(mServiceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
+        }
+
+        return mService != null;
+    }
+
+    private boolean stopService(Context context) {
+        if (mServiceConnection != null || mService != null || mServiceIntent != null) {
+            try {
+                context.unbindService(mServiceConnection);
+            } catch (IllegalArgumentException e) {
+                // Service not registered ?
+                context.stopService(mServiceIntent);
+            }
+
+            mService = null;
+            mServiceConnection = null;
+            mServiceIntent = null;
+        }
+        return true;
+    }
+
+    public synchronized boolean setEnabled(Context context, boolean enabled) {
+        Context appContext = context.getApplicationContext();
+        if (mEnabled != enabled) {
+            if (mService == null && enabled) {
+                if (startService(appContext)) {
+                    mEnabled = true;
+                }
+            } else if (mService != null && !enabled) {
+                if (stopService(appContext)) {
+                    mEnabled = false;
+                }
+            }
+        }
+
+        return mEnabled = enabled;
     }
 
     public void openTranslationWindow(ViewGroup root) {
