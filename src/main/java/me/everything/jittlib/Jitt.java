@@ -13,7 +13,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.provider.Settings;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -161,7 +160,6 @@ public class Jitt {
             @Override
             public void onActivityResumed(Activity activity) {
                 mHandler.removeCallbacks(mDelayedPauseUpdate);
-                Log.e(TAG,"Set activity: "+activity+" mService="+mService);
                 setCurrentActivity(activity);
             }
 
@@ -199,13 +197,10 @@ public class Jitt {
             mServiceConnection = new ServiceConnection() {
                 @Override
                 public void onServiceConnected(ComponentName name, IBinder service) {
-                    Log.v(TAG, "SERVICE CONNECTED");
-
                     if (service instanceof JittService.JittLocalBinder) {
                         JittService.JittLocalBinder binder = (JittService.JittLocalBinder) service;
                         mService = binder.getService();
                         if (mSavedActivity != null) {
-                            Log.e(TAG, "Set savedactivity: " + mSavedActivity + " mService=" + mService);
                             mService.setActivity(mSavedActivity);
                             mSavedActivity = null;
                         }
