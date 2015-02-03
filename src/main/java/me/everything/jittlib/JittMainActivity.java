@@ -200,7 +200,7 @@ public class JittMainActivity extends ActionBarActivity implements Jitt.UserActi
 
             holder.title.setAlpha(0.5f);
             holder.title.setTextColor(Color.BLACK);
-            convertView.setBackground(null);
+            convertView.setBackgroundDrawable(null);
             holder.title.setText((String)getItem(position));
 
             return convertView;
