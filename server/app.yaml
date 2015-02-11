@@ -7,6 +7,8 @@ threadsafe: true
 handlers:
 - url: /api/.*
   script: api.application
+- url: /task/.*
+  script: api.application
 
 builtins:
 - remote_api: on

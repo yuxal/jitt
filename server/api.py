@@ -11,6 +11,7 @@ from random import random
 from collections import Counter
 from google.appengine.ext import ndb
 from google.appengine.api import urlfetch
+from google.appengine.api import taskqueue
 
 class Suggestion(ndb.Model):
     app_id = ndb.StringProperty()
@@ -90,7 +91,39 @@ class DoAction(webapp2.RequestHandler):
 
         self.response.write("OK")
 
+class Upload(webapp2.RequestHandler):
+    def post(self,app_id):
+        data = json.loads(self.request.body)
+        num = len(data)
+        while len(data)>0:
+            chunk = data[:50]
+            data = data[50:]
+            taskqueue.add(url='/task/upload', params={'translations':json.dumps(chunk), 'app_id':app_id})
+
+        self.response.write(json.dumps({'success':True,'num':num,'app_id':app_id}))
+
+class UploadTask(webapp2.RequestHandler):
+    def post(self):
+        translations = json.loads(self.request.get('translations'))
+        app_id = self.request.get('app_id')
+        logging.debug('TASK: handling {0} strings for {1}'.format(len(translations),app_id))
+        to_put = []
+        for key, mapping in translations:
+            for locale, translated in mapping.iteritems():
+                suggestion = Suggestion.query(Suggestion.app_id==app_id,
+                                              Suggestion.str_key==key,
+                                              Suggestion.translated==translated,
+                                              Suggestion.locale==locale).fetch(1)
+                if len(suggestion)==0:
+                    suggestion=Suggestion(app_id=app_id,str_key=key,translated=translated,locale=locale,votes=1)
+                    to_put.append(suggestion)
+        ndb.put_multi(to_put)
+        logging.debug('TASK: added {0} suggestions'.format(len(to_put)))
+
+
 application = webapp2.WSGIApplication([
     ('/api/translations', GetTranslations),
     ('/api/action', DoAction),
+    ('/api/upload/(.+)', Upload),
+    ('/task/upload', UploadTask),
 ], debug=True)
