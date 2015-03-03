@@ -21,9 +21,11 @@ import android.widget.TextView;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -66,6 +68,7 @@ public class Jitt {
 
     private Map<String, Entry> mResourcesEntries = new HashMap<>();
     private List<String> mViewResourcesStrings = new ArrayList<>();
+    private Set<String> mViewResourcesStringsDedup = new HashSet<>();
     private List<String> mViewResourcesKeys = new ArrayList<>();
     private List<String> mViewNoneResourcesStrings = new ArrayList<>();
 
@@ -259,11 +262,12 @@ public class Jitt {
         }
     }
 
-    private List<String> getKeysForStrings(List<String> strings) {
+    private List<String> getKeysForStrings(Collection<String> strings) {
         List<String> keys = new ArrayList<>();
         for (String string: strings) {
             keys.add(mResourcesEntries.get(string).key);
         }
+        Collections.sort(keys);
         return keys;
     }
 
@@ -300,7 +304,7 @@ public class Jitt {
 
             if (mResourcesEntries.containsKey(string)) {
                 // This string has a corresponding entry in string XML
-                mViewResourcesStrings.add(string);
+                mViewResourcesStringsDedup.add(string);
             } else {
                 mViewNoneResourcesStrings.add(string);
             }
@@ -330,7 +334,8 @@ public class Jitt {
             mViewNoneResourcesStrings.clear();
 
             extractStringsFromView(root);
-
+            mViewResourcesStrings.addAll(mViewResourcesStringsDedup);
+            Collections.sort(mViewResourcesStrings);
             getDataFromServer();
 
             return null;

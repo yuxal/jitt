@@ -18,6 +18,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -125,7 +126,7 @@ public class JittMainActivity extends ActionBarActivity implements Jitt.UserActi
 
         @Override
         public int getCount() {
-            List<String> validStrings = Jitt.getInstance().getValidViewStrings();
+            Collection<String> validStrings = Jitt.getInstance().getValidViewStrings();
             return validStrings.size();
 
         }
