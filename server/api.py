@@ -38,10 +38,10 @@ class GetTranslations(webapp2.RequestHandler):
         device_id = self.request.get('device_id')
         keys = set(self.request.get_all('key'))
         translated_locales = [ x.split('_')[0] for x in self.request.get_all('locale') ]
-        logging.error("locales %r" % translated_locales)
+        logging.info("locales %r" % translated_locales)
 
         suggestions = Suggestion.query(Suggestion.app_id==app_id, Suggestion.str_key.IN(keys), Suggestion.locale.IN(translated_locales)).order(-Suggestion.votes).fetch(1000)
-        logging.error("suggestions %d, %r" % (len(suggestions),suggestions))
+        logging.info("suggestions %d, %r" % (len(suggestions),suggestions))
         ret = { k: {l:[] for l in translated_locales} for k in keys}
         for s in suggestions:
             ret.setdefault(s.str_key,{l:[] for l in translated_locales})[s.locale].append({ 'suggested':s.translated, 'votes':s.votes, 'user_selected':get_action(device_id,s) })
