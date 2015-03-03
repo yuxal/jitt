@@ -36,7 +36,7 @@ class GetTranslations(webapp2.RequestHandler):
     def get(self):
         app_id = self.request.get('app_id')
         device_id = self.request.get('device_id')
-        keys = self.request.get_all('key')
+        keys = set(self.request.get_all('key'))
         translated_locales = [ x.split('_')[0] for x in self.request.get_all('locale') ]
         logging.error("locales %r" % translated_locales)
 
@@ -108,17 +108,24 @@ class UploadTask(webapp2.RequestHandler):
         app_id = self.request.get('app_id')
         logging.debug('TASK: handling {0} strings for {1}'.format(len(translations),app_id))
         to_put = []
+        to_delete = []
         for key, mapping in translations:
             for locale, translated in mapping.iteritems():
                 suggestion = Suggestion.query(Suggestion.app_id==app_id,
                                               Suggestion.str_key==key,
                                               Suggestion.translated==translated,
-                                              Suggestion.locale==locale).fetch(1)
+                                              Suggestion.locale==locale).fetch(100)
                 if len(suggestion)==0:
                     suggestion=Suggestion(app_id=app_id,str_key=key,translated=translated,locale=locale,votes=1)
                     to_put.append(suggestion)
-        ndb.put_multi(to_put)
+                if len(suggestion)>1:
+                    to_delete.extend([e.key for e in suggestion[1:]])
+        if len(to_put)>0:
+            ndb.put_multi(to_put)
+        if len(to_delete)>0:
+            ndb.delete_multi(to_delete)
         logging.debug('TASK: added {0} suggestions'.format(len(to_put)))
+        logging.debug('TASK: deleted {0} suggestions'.format(len(to_delete)))
 
 
 application = webapp2.WSGIApplication([
