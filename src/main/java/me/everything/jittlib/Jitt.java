@@ -348,14 +348,21 @@ public class Jitt {
         // Get data from server
         List<String> translationLangs = getSelectedLocale();
         List<String> keys = getKeysForStrings(mViewResourcesStrings);
-        mSuggestions = mServerAPI.getTranslations(mDeviceId, keys, translationLangs);
+        ServerAPI.TranslationResult suggestions = mServerAPI.getTranslations(mDeviceId, keys, translationLangs);
+        if ( suggestions != null ) {
+            mSuggestions = suggestions;
+        }
     }
 
-    HashMap<String, ArrayList<ServerAPI.Suggestion>> getDataForString(String string) {
+    Map<String, ArrayList<ServerAPI.Suggestion>> getDataForString(String string) {
         Entry entry = mResourcesEntries.get(string);
         String key = entry.key;
 
-        return mSuggestions.get(key);
+        if ( mSuggestions != null ) {
+            return mSuggestions.get(key);
+        } else {
+            return Collections.emptyMap();
+        }
     }
 
     public List<Map.Entry<String, String>> getAllLocale() {

@@ -14,7 +14,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Created by adam on 12/9/14.
@@ -86,8 +85,12 @@ public class ServerAPI {
         Log.d(TAG, "URL=" + builder.toString());
         String data = readFromURL(builder.toString(),false);
         Log.v(TAG, "DATA=" + data);
-        TranslationResult parsed = mGson.fromJson(data, TranslationResult.class);
-        return parsed;
+        if ( data != null ) {
+            TranslationResult parsed = mGson.fromJson(data, TranslationResult.class);
+            return parsed;
+        } else {
+            return null;
+        }
     }
 
     public boolean doAction( String deviceId, String key, String lang, String suggestion, String action ) {
@@ -101,7 +104,7 @@ public class ServerAPI {
         Log.d(TAG, "URL=" + builder.toString());
         String data = readFromURL(builder.toString(),true);
         Log.v(TAG, "DATA=" + data);
-        return data.equals("OK");
+        return "OK".equals(data);
     }
 
 }

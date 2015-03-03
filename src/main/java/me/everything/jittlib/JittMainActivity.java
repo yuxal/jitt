@@ -4,9 +4,8 @@ import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
-import android.util.Log;
+import android.support.v7.app.ActionBarActivity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -19,8 +18,8 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public class JittMainActivity extends ActionBarActivity implements Jitt.UserActionListener {
@@ -167,7 +166,7 @@ public class JittMainActivity extends ActionBarActivity implements Jitt.UserActi
             // Set Icon
             boolean missingTranslation = false;
 
-            HashMap<String, ArrayList<ServerAPI.Suggestion>> data = Jitt.getInstance().getDataForString(string);
+            Map<String, ArrayList<ServerAPI.Suggestion>> data = Jitt.getInstance().getDataForString(string);
             List<String> selectedLocales = Jitt.getInstance().getSelectedLocale();
             for (String locale: selectedLocales) {
                 ArrayList<ServerAPI.Suggestion> suggestions = data.get(locale);
