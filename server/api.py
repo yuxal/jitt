@@ -75,21 +75,25 @@ class DoAction(webapp2.RequestHandler):
         orig_votes = suggestion.votes
         orig_action = user_action.action
 
-        if user_action.action != "new":
-            if user_action.action != action:
-                if user_action.action == "up":     suggestion.votes -= 1
-                elif user_action.action == "down": suggestion.votes += 1
-                user_action.action = action
-                if user_action.action == "up":     suggestion.votes += 1
-                elif user_action.action == "down": suggestion.votes -= 1
+        if action == "delete" and user_action.action=="new" suggestion.votes==1:
+            #I'm trying to delete my own suggestion that still no-one voted on
+            user_action.key.delete()
+            suggestion.key.delete()
+        else:
+            if user_action.action != "new":
+                if user_action.action != action:
+                    if user_action.action == "up":     suggestion.votes -= 1
+                    elif user_action.action == "down": suggestion.votes += 1
+                    user_action.action = action
+                    if user_action.action == "up":     suggestion.votes += 1
+                    elif user_action.action == "down": suggestion.votes -= 1
 
-                ad = True
-        if orig_action != user_action.action:
-            user_action.put()
-        if orig_votes != suggestion.votes:
-            suggestion.put()
+            if orig_action != user_action.action:
+                user_action.put()
+            if orig_votes != suggestion.votes:
+                suggestion.put()
 
-        self.response.write("OK")
+            self.response.write("OK")
 
 class Upload(webapp2.RequestHandler):
     def post(self,app_id):
