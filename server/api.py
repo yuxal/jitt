@@ -96,8 +96,8 @@ class Upload(webapp2.RequestHandler):
         data = json.loads(self.request.body)
         num = len(data)
         while len(data)>0:
-            chunk = data[:50]
-            data = data[50:]
+            chunk = data[:10]
+            data = data[10:]
             taskqueue.add(url='/task/upload', params={'translations':json.dumps(chunk), 'app_id':app_id})
 
         self.response.write(json.dumps({'success':True,'num':num,'app_id':app_id}))
