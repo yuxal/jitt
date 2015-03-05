@@ -171,7 +171,7 @@ public class JittMainActivity extends ActionBarActivity implements Jitt.UserActi
             List<String> selectedLocales = Jitt.getInstance().getSelectedLocale();
             for (String locale: selectedLocales) {
                 ArrayList<ServerAPI.Suggestion> suggestions = data.get(locale);
-                if (suggestions.isEmpty()) {
+                if (suggestions == null || suggestions.isEmpty()) {
                     missingTranslation = true;
                     break;
                 }
