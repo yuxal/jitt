@@ -2,11 +2,14 @@ package me.everything.jittlib;
 
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.view.LayoutInflater;
@@ -90,8 +93,18 @@ public class JittTranslateActivity extends ActionBarActivity implements Jitt.Use
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setBackgroundDrawable(new ColorDrawable(Color.parseColor("#13b476")));
 
-        TextView originalString = (TextView)findViewById(R.id.original_string);
-        originalString.setText(mString);
+        // display the original string in Jitt's locale if possible
+        // otherwise use device locale
+        String originalString = mString;
+        int resId = Jitt.getInstance().getResourceIdForString(mString);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1 && resId > 0) {
+            Configuration conf = new Configuration(getResources().getConfiguration());
+            conf.locale = Jitt.getInstance().getDisaplyLocale();
+            originalString = createConfigurationContext(conf).getResources().getString(resId);
+        }
+
+        TextView originalStringView = (TextView)findViewById(R.id.original_string);
+        originalStringView.setText(originalString);
 
         loadData();
 

@@ -38,6 +38,10 @@ public class Jitt {
 
     private static final String SELECTED_LOCALES = "jitt_selected_locals";
     private static final String TAG = "JITT.main";
+
+    // original strings and language names are always displayed in English
+    private final String JITT_LOCALE = "en";
+
     private SharedPreferences mSP;
     private Locale mCurrentLocale;
     private PrepareTranslationsView mPrepareTranslationsTask = null;
@@ -49,6 +53,7 @@ public class Jitt {
     private Runnable mDelayedPauseUpdate;
     private Intent mServiceIntent;
     private ServiceConnection mServiceConnection;
+    private Locale mDisplayLocale;
 
     public static class Entry {
         public String key;
@@ -100,7 +105,9 @@ public class Jitt {
         mDeviceId = Settings.Secure.getString(context.getContentResolver(),
                 Settings.Secure.ANDROID_ID);
 
+        mDisplayLocale = new Locale(JITT_LOCALE);
         mLocaleList = new HashMap<>();
+
         Locale[] locales = Locale.getAvailableLocales();
         ArrayList<String> localeCountries = new ArrayList<String>();
         for (Locale l : locales) {
@@ -109,8 +116,8 @@ public class Jitt {
                 lang = "he";
             }
             if (!mLocaleList.containsKey(lang)) {
-                mLocaleList.put(lang, l.getDisplayLanguage());
-                localeCountries.add(l.getLanguage());
+                mLocaleList.put(lang, l.getDisplayLanguage(mDisplayLocale));
+                localeCountries.add(lang);
             }
         }
 
@@ -368,6 +375,19 @@ public class Jitt {
         } else {
             return Collections.emptyMap();
         }
+    }
+
+    public int getResourceIdForString(String string) {
+        Entry entry = mResourcesEntries.get(string);
+        if (entry != null) {
+            return entry.resId;
+        }
+
+        return 0;
+    }
+
+    public Locale getDisaplyLocale() {
+        return mDisplayLocale;
     }
 
     public List<Map.Entry<String, String>> getAllLocale() {
