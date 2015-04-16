@@ -24,6 +24,8 @@ public class ServerAPI {
     private final String mAppId;
     private Gson mGson;
 
+    public static int INITIAL_VOTES = 1;
+
     public static class Suggestion {
         String suggested;
         String user_selected;

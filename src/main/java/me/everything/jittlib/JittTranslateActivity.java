@@ -2,7 +2,6 @@ package me.everything.jittlib;
 
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -25,6 +24,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -56,6 +56,7 @@ public class JittTranslateActivity extends ActionBarActivity implements Jitt.Use
         loadData();
         mAdapter.notifyDataSetChanged();
         mLoadingScreen.setVisibility(View.GONE);
+        Toast.makeText(this, getString(R.string.changes_saved), Toast.LENGTH_LONG).show();
     }
 
     private enum ColorsList {
@@ -291,10 +292,12 @@ public class JittTranslateActivity extends ActionBarActivity implements Jitt.Use
                 holder.voteUp = (ImageView)convertView.findViewById(R.id.vote_up);
                 holder.voteDown = (ImageView)convertView.findViewById(R.id.vote_down);
                 holder.voteFlag = (ImageView)convertView.findViewById(R.id.vote_flag);
+                holder.deleteBtn = (ImageView)convertView.findViewById(R.id.delete_translation);
 
                 holder.voteUp.setOnClickListener(this);
                 holder.voteDown.setOnClickListener(this);
                 holder.voteFlag.setOnClickListener(this);
+                holder.deleteBtn.setOnClickListener(this);
 
                 convertView.setTag(holder);
             } else {
@@ -310,14 +313,26 @@ public class JittTranslateActivity extends ActionBarActivity implements Jitt.Use
 
             // TODO update user action if any
             String userSelection = entry.suggestion.user_selected;
-            holder.voteUp.setSelected("up".equals(userSelection));
-            holder.voteDown.setSelected("down".equals(userSelection));
-            holder.voteFlag.setSelected("flag".equals(userSelection));
+
+            // user is creator, so she can delete
+            if ("new".equals(userSelection)) {
+                holder.voteUp.setVisibility(View.GONE);
+                holder.voteDown.setVisibility(View.GONE);
+                holder.voteFlag.setVisibility(View.GONE);
+                if (entry.suggestion.votes <= ServerAPI.INITIAL_VOTES) {
+                    holder.deleteBtn.setVisibility(View.VISIBLE);
+                }
+            } else {
+                holder.voteUp.setSelected("up".equals(userSelection));
+                holder.voteDown.setSelected("down".equals(userSelection));
+                holder.voteFlag.setSelected("flag".equals(userSelection));
+            }
 
             Integer pos = position;
             holder.voteUp.setTag(pos);
             holder.voteDown.setTag(pos);
             holder.voteFlag.setTag(pos);
+            holder.deleteBtn.setTag(pos);
 
             return convertView;
         }
@@ -351,16 +366,7 @@ public class JittTranslateActivity extends ActionBarActivity implements Jitt.Use
             int viewId = v.getId();
             int pos = (Integer)v.getTag();
 
-            if (viewId == R.id.vote_up) {
-                SuggestionEntry entry = (SuggestionEntry)mItemsList.get(pos);
-                Jitt.getInstance().sendUserAction(JittTranslateActivity.this, mString, entry.lang, entry.suggestion.suggested, "up");
-            } else if (viewId == R.id.vote_down) {
-                SuggestionEntry entry = (SuggestionEntry)mItemsList.get(pos);
-                Jitt.getInstance().sendUserAction(JittTranslateActivity.this, mString, entry.lang, entry.suggestion.suggested, "down");
-            } else if (viewId == R.id.vote_flag) {
-                SuggestionEntry entry = (SuggestionEntry)mItemsList.get(pos);
-                Jitt.getInstance().sendUserAction(JittTranslateActivity.this, mString, entry.lang, entry.suggestion.suggested, "flag");
-            } else if (viewId == R.id.add) {
+            if (viewId == R.id.add) {
                 mSuggestion.setVisibility(View.VISIBLE);
                 mList.setVisibility(View.GONE);
 
@@ -380,6 +386,21 @@ public class JittTranslateActivity extends ActionBarActivity implements Jitt.Use
                 set.setDuration(300);
                 set.setInterpolator(new DecelerateInterpolator());
                 set.start();
+            } else {
+                SuggestionEntry entry = (SuggestionEntry) mItemsList.get(pos);
+                String action = "";
+
+                if (viewId == R.id.vote_up) {
+                    action = "up";
+                } else if (viewId == R.id.vote_down) {
+                    action = "down";
+                } else if (viewId == R.id.vote_flag) {
+                    action = "flag";
+                } else if (viewId == R.id.delete_translation) {
+                    action = "delete";
+                }
+
+                Jitt.getInstance().sendUserAction(JittTranslateActivity.this, mString, entry.lang, entry.suggestion.suggested, action);
             }
         }
 
@@ -389,6 +410,7 @@ public class JittTranslateActivity extends ActionBarActivity implements Jitt.Use
             public ImageView voteUp;
             public ImageView voteDown;
             public ImageView voteFlag;
+            public ImageView deleteBtn;
         }
 
         private class TitleViewHolder {

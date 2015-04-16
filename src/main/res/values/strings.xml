@@ -3,5 +3,6 @@
 
     <string name="action_settings_select_languages">Select Languages</string>
     <string name="title_activity_jitt_main">Select a string to translate</string>
+    <string name="changes_saved">Changes saved</string>
 
 </resources>
