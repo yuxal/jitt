@@ -67,6 +67,17 @@
             android:src="@drawable/icon_flag"
             android:background="@drawable/button_background"/>
 
+        <ImageView
+            android:id="@+id/delete_translation"
+            android:layout_width="36dp"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
+            android:padding="4dp"
+            android:src="@drawable/icon_trash"
+            android:background="@drawable/button_background"
+            android:visibility="gone"
+            />
+
     </LinearLayout>
 
 

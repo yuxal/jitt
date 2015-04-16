@@ -13,6 +13,8 @@ from google.appengine.ext import ndb
 from google.appengine.api import urlfetch
 from google.appengine.api import taskqueue
 
+INITIAL_VOTES = 1
+
 class Suggestion(ndb.Model):
     app_id = ndb.StringProperty()
     str_key = ndb.StringProperty()
@@ -44,11 +46,15 @@ class GetTranslations(webapp2.RequestHandler):
         logging.info("suggestions %d, %r" % (len(suggestions),suggestions))
         ret = { k: {l:[] for l in translated_locales} for k in keys}
         for s in suggestions:
-            ret.setdefault(s.str_key,{l:[] for l in translated_locales})[s.locale].append({ 'suggested':s.translated, 'votes':s.votes, 'user_selected':get_action(device_id,s) })
+            action = get_action(device_id, s)
+            data = {
+                'suggested': s.translated,
+                'votes': s.votes,
+                'user_selected': action
+            }
 
-        # ret = { key: { lang: [ { 'suggested' : s.translated, 'votes' : s.votes, 'user_selected' : get_action(device_id,s) } for s in strings]
-        #                         for lang, strings in itertools.groupby(suggestions.get(key,[]),lambda x:x.locale) }
-        #                 for key in keys }
+            locales = ret.setdefault(s.str_key, {l: [] for l in translated_locales})
+            locales[s.locale].append(data)
 
         self.response.write(json.dumps(ret))
 
@@ -65,7 +71,7 @@ class DoAction(webapp2.RequestHandler):
             suggestion = suggestion[0]
         else:
             action = "new"
-            suggestion = Suggestion(app_id=app_id,str_key=key,translated=string,locale=locale,votes=1)
+            suggestion = Suggestion(app_id=app_id,str_key=key,translated=string,locale=locale,votes=INITIAL_VOTES)
             suggestion.put()
         user_action = UserAction.query(UserAction.deviceid==device_id,UserAction.suggestion==suggestion.key).fetch(1)
         if len(user_action) > 0:
@@ -75,25 +81,30 @@ class DoAction(webapp2.RequestHandler):
         orig_votes = suggestion.votes
         orig_action = user_action.action
 
-        if action == "delete" and user_action.action=="new" suggestion.votes==1:
-            #I'm trying to delete my own suggestion that still no-one voted on
-            user_action.key.delete()
-            suggestion.key.delete()
-        else:
-            if user_action.action != "new":
-                if user_action.action != action:
-                    if user_action.action == "up":     suggestion.votes -= 1
-                    elif user_action.action == "down": suggestion.votes += 1
-                    user_action.action = action
-                    if user_action.action == "up":     suggestion.votes += 1
-                    elif user_action.action == "down": suggestion.votes -= 1
+        deleted = False
+        # user created suggestion
+        if user_action.action == "new":
+            if action == "delete" and suggestion.votes <= INITIAL_VOTES:
+                suggestion.key.delete()
+                user_action.key.delete()
+                deleted = True
 
+        # user can vote
+        else:
+            if user_action.action != action:
+                if user_action.action == "up":     suggestion.votes -= 1
+                elif user_action.action == "down": suggestion.votes += 1
+                user_action.action = action
+                if user_action.action == "up":     suggestion.votes += 1
+                elif user_action.action == "down": suggestion.votes -= 1
+
+        if not deleted:
             if orig_action != user_action.action:
                 user_action.put()
             if orig_votes != suggestion.votes:
                 suggestion.put()
 
-            self.response.write("OK")
+        self.response.write("OK")
 
 class Upload(webapp2.RequestHandler):
     def post(self,app_id):
