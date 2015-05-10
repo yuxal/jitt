@@ -21,11 +21,13 @@ class Suggestion(ndb.Model):
     translated = ndb.StringProperty()
     locale = ndb.StringProperty()
     votes = ndb.IntegerProperty()
+    timestamp = ndb.DateTimeProperty(auto_now_add=True)
 
 class UserAction(ndb.Model):
     deviceid = ndb.StringProperty()
     action = ndb.StringProperty()
     suggestion = ndb.KeyProperty(kind="Suggestion")
+    timestamp = ndb.DateTimeProperty(auto_now_add=True)
 
 def get_action(deviceid,suggestion):
     actions = UserAction.query(UserAction.deviceid==deviceid,UserAction.suggestion==suggestion.key).fetch(1)
@@ -121,7 +123,6 @@ class UploadTask(webapp2.RequestHandler):
     def post(self):
         translations = json.loads(self.request.get('translations'))
         app_id = self.request.get('app_id')
-        logging.debug('TASK: handling {0} strings for {1}'.format(len(translations),app_id))
         to_put = []
         to_delete = []
         for key, mapping in translations:
@@ -133,14 +134,16 @@ class UploadTask(webapp2.RequestHandler):
                 if len(suggestion)==0:
                     suggestion=Suggestion(app_id=app_id,str_key=key,translated=translated,locale=locale,votes=1)
                     to_put.append(suggestion)
-                if len(suggestion)>1:
+                elif len(suggestion)>1:
                     to_delete.extend([e.key for e in suggestion[1:]])
         if len(to_put)>0:
             ndb.put_multi(to_put)
         if len(to_delete)>0:
             ndb.delete_multi(to_delete)
-        logging.debug('TASK: added {0} suggestions'.format(len(to_put)))
-        logging.debug('TASK: deleted {0} suggestions'.format(len(to_delete)))
+        if len(to_put)>0:
+            logging.debug('TASK: {2}: added {0}/{1} suggestions'.format(len(to_put),len(translations),app_id))
+        if len(to_delete)>0:
+            logging.debug('TASK: {2}: deleted {0}/{1} suggestions'.format(len(to_delete),len(translations),app_id))
 
 
 application = webapp2.WSGIApplication([
